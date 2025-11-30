@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 60 16.7% 97.6%;
+    --foreground: 0 0% 18.4%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 18.4%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 18.4%;
+
+     --primary: 0 0% 12%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 15%;
+
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 15%;
+
+    --ring: 0 0% 18%;
+
+    --muted: 60 11.1% 96.5%;
+    --muted-foreground: 0 0% 43.5%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 60 8.8% 88.8%;
+    --input: 60 8.8% 88.8%;
+
+    --radius: 0.5rem;
+
+    --positive: 140 69.2% 94.9%;
+    --negative: 3 83.3% 95.3%;
+
+    --green: 142.1 70.6% 45.3%;
+    --green-muted: 140 69.2% 94.9%;
+
+    --yellow: 45.4 93.4% 47.5%;
+    --yellow-muted: 49.2 100% 92.4%;
+
+    --purple: 270.7 91% 65.1%;
+    --purple-muted: 271.6 100% 96.3%;
+
+    --text-secondary: 0 0% 43.5%;
+    --text-tertiary: 0 0% 69%;
+
+    /* Priority colors */
+    --priority-high-bg: 0 100% 95%;
+    --priority-high-fg: 0 65% 45%;
+    --priority-high-border: 0 100% 90%;
+
+    --priority-medium-bg: 45 100% 95%;
+    --priority-medium-fg: 45 90% 40%;
+    --priority-medium-border: 45 100% 88%;
+
+    --priority-low-bg: 142 70% 95%;
+    --priority-low-fg: 142 60% 35%;
+    --priority-low-border: 142 70% 88%;
+
+    /* Overdue/Error state */
+    --error-bg: 0 100% 97%;
+    --error-fg: 0 84% 60%;
+    --error-border: 0 100% 90%;
+
+    /* Star/Pin accent */
+    --star: 45 93% 47%;
+
+    /* Event color */
+    --event: 270 91% 65%;
+
+    /* Scrollbar colors */
+    --scrollbar-track: 0 0% 96%;
+    --scrollbar-thumb: 25 11% 69%;
+    --scrollbar-thumb-hover: 0 0% 23%;
+
+    /* Chart colors */
+    --chart-bar-bg: 0 0% 23%;
+    --chart-bar-border: 0 0% 11%;
+
+    /* Subject colors */
+    --subject-violet: 258 90% 66%;
+    --subject-amber: 38 92% 50%;
+    --subject-rose: 330 81% 60%;
+    --subject-sky: 199 89% 48%;
+    --subject-emerald: 160 84% 39%;
+    --subject-indigo: 239 84% 67%;
+
+    /* App background */
+    --app-background: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 222 16% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 222 16% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 5%;
+
+    --secondary: 222 16% 14%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 222 16% 14%;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 222 16% 18%;
+    --accent-foreground: 0 0% 98%;
+
+    --border: 222 16% 18%;
+    --input: 222 16% 18%;
+    --ring: 0 0% 98%;
+
+    --positive: 142 35% 20%;
+    --negative: 0 40% 25%;
+    --yellow-muted: 45 45% 22%;
+    --green-muted: 142 35% 20%;
+
+    /* Priority colors - dark mode */
+    --priority-high-bg: 0 80% 25%;
+    --priority-high-fg: 0 100% 90%;
+    --priority-high-border: 0 80% 35%;
+
+    --priority-medium-bg: 45 85% 25%;
+    --priority-medium-fg: 45 100% 90%;
+    --priority-medium-border: 45 85% 35%;
+
+    --priority-low-bg: 142 70% 25%;
+    --priority-low-fg: 142 100% 90%;
+    --priority-low-border: 142 70% 35%;
+
+    /* Overdue/Error state - dark mode */
+    --error-bg: 0 80% 20%;
+    --error-fg: 0 100% 85%;
+    --error-border: 0 80% 30%;
+
+    /* Scrollbar colors - dark mode */
+    --scrollbar-track: 222 16% 12%;
+    --scrollbar-thumb: 222 16% 25%;
+    --scrollbar-thumb-hover: 0 0% 80%;
+
+    /* Chart colors - dark mode */
+    --chart-bar-bg: 0 0% 70%;
+    --chart-bar-border: 0 0% 85%;
+
+    /* App background - dark mode */
+    --app-background: 222 16% 8%;
+  }
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Smooth theme transitions with GPU acceleration */
+  html {
+    transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  body,
+  [class*="bg-"],
+  [class*="text-"],
+  [class*="border-"] {
+    transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: auto;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--scrollbar-track));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--scrollbar-thumb));
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--scrollbar-thumb-hover));
+}
