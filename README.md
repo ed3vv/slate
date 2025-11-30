@@ -1,6 +1,16 @@
-slate is a productivity app meant to boost users' task management.
+# slate
 
-components from shadcn
+slate is a productivity app for tracking tasks and planning ahead. It focuses on fast input, a clean UI, and a simple workflow you can actually stick with.
+https://slate-eta-seven.vercel.app/
 
+## Tech stack
 
-lock in
+- React + Vite
+- Tailwind CSS
+- shadcn/ui
+
+## Getting started
+
+```bash
+npm install
+npm run dev
