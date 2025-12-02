@@ -25,6 +25,16 @@ export function SubjectCard({
   const [newTaskPriority, setNewTaskPriority] = useState('medium');
   const [editingSubject, setEditingSubject] = useState(false);
   const [editSubjectName, setEditSubjectName] = useState(subject.name);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+
+  const availableColors = [
+    'bg-[hsl(var(--subject-violet))]',
+    'bg-[hsl(var(--subject-amber))]',
+    'bg-[hsl(var(--subject-rose))]',
+    'bg-[hsl(var(--subject-sky))]',
+    'bg-green-500',
+    'bg-blue-500'
+  ];
 
   const handleAddTask = () => {
     if (newTaskTitle.trim()) {
@@ -43,6 +53,11 @@ export function SubjectCard({
     }
   };
 
+  const handleColorChange = (color) => {
+    onUpdateSubject(subject.id, { color: color });
+    setShowColorPicker(false);
+  };
+
   const completedCount = subject.tasks.filter(t => t.completed).length;
   const totalCount = subject.tasks.length;
   const sortedTasks = sortTasks(subject.tasks);
@@ -57,7 +72,29 @@ export function SubjectCard({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3 flex-1">
             {subject.expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-            <div className={`w-3 h-3 rounded-full ${subject.color}`}></div>
+            <div className="relative">
+              <button
+                className={`w-3 h-3 rounded-full ${subject.color} cursor-pointer hover:opacity-70 transition-all`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowColorPicker(!showColorPicker);
+                }}
+              />
+              {showColorPicker && (
+                <div className="absolute top-6 left-0 z-50 bg-card border border-border rounded-lg shadow-lg p-2 flex gap-2">
+                  {availableColors.map((color) => (
+                    <button
+                      key={color}
+                      className={`w-6 h-6 rounded-full ${color} cursor-pointer hover:opacity-70 transition-all`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleColorChange(color);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
             {editingSubject ? (
               <Input
                 type="text"
