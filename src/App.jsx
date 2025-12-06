@@ -228,7 +228,7 @@ function App() {
   const stats = getTasksStats();
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="mb-60 min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-8xl mx-auto">
         {/* Header */}
         <Card className="mb-6 bg-card border-0">

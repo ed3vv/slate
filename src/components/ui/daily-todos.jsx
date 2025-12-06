@@ -57,7 +57,7 @@ export function DailyTodos() {
           </Button>
         </div>
 
-        <div className="space-y-2 max-h-64 overflow-y-auto">
+        <div className="space-y-2 max-h-256 overflow-y-auto">
           {todos.length === 0 ? (
             <p className="text-center py-4 text-sm text-muted-foreground">
               No quick tasks yet!
