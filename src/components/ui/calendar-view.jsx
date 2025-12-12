@@ -71,12 +71,6 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }) {
               ←
             </Button>
             <Button
-              onClick={() => setCurrentDate(new Date())}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              Today
-            </Button>
-            <Button
               onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
               variant="outline"
               className="bg-secondary hover:bg-secondary/80"
