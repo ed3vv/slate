@@ -1,6 +1,6 @@
 # slate
 
-slate is a productivity app for tracking tasks and planning ahead. It focuses on fast input, a clean UI, and a simple workflow you can actually stick with.
+slate is a minimalistic productivity app for tracking tasks and planning ahead. More features coming soon
 https://slate-eta-seven.vercel.app/
 
 ## Tech stack
@@ -9,8 +9,3 @@ https://slate-eta-seven.vercel.app/
 - Tailwind CSS
 - shadcn/ui
 
-## Getting started
-
-```bash
-npm install
-npm run dev
