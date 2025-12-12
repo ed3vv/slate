@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CheckSquare, Square, Star, Edit, Trash2 } from 'lucide-react';
+import { CheckSquare, Square, Edit, Trash2 } from 'lucide-react';
 import { DateUtils } from '@/lib/dateUtils';
 
 export function TimelineTaskItem({ task, onToggle, onTogglePin, onUpdate, onDelete }) {
@@ -105,14 +105,6 @@ export function TimelineTaskItem({ task, onToggle, onTogglePin, onUpdate, onDele
           <span className="text-sm text-muted-foreground">{task.subjectName}</span>
         </div>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onTogglePin}
-        className={`h-8 w-8 hover:bg-transparent ${task.pinned ? 'text-[hsl(var(--star))]' : 'text-muted-foreground hover:text-[hsl(var(--star))]'}`}
-      >
-        <Star className="h-4 w-4" fill={task.pinned ? 'currentColor' : 'none'} />
-      </Button>
       <Badge variant="outline" className={priorityColors[task.priority]}>
         {task.priority}
       </Badge>

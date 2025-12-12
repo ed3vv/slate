@@ -19,6 +19,9 @@ export default {
       },
     },
     extend: {
+      screens: {
+        'custom': '900px',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

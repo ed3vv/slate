@@ -7,17 +7,17 @@ import { ChevronDown, ChevronRight, Edit, Trash2, Plus } from 'lucide-react';
 import { TaskItem } from './task-item';
 import { Progress } from '@/components/ui/progress';
 
-export function SubjectCard({ 
-  subject, 
-  onToggle, 
-  onToggleTask, 
-  onTogglePin, 
-  onAddTask, 
-  onUpdateTask, 
-  onUpdateSubject, 
-  onDeleteTask, 
-  onDeleteSubject, 
-  sortTasks 
+export function SubjectCard({
+  subject,
+  onToggle,
+  onToggleTask,
+  onTogglePin,
+  onAddTask,
+  onUpdateTask,
+  onUpdateSubject,
+  onDeleteTask,
+  onDeleteSubject,
+  sortTasks
 }) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -157,7 +157,6 @@ export function SubjectCard({
               onTogglePin={() => onTogglePin(subject.id, task.id)}
               onUpdate={(updates) => onUpdateTask(subject.id, task.id, updates)}
               onDelete={() => onDeleteTask(subject.id, task.id)}
-              compact={true}
             />
           ))}
 

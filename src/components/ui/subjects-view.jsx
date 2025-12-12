@@ -1,26 +1,28 @@
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, ArrowUpDown } from 'lucide-react';
 import { SubjectCard } from './subject-card';
 
-export function SubjectsView({ 
-  subjects, 
-  sortBy, 
-  setSortBy, 
-  onToggle, 
-  onToggleTask, 
-  onTogglePin, 
-  onAddTask, 
-  onUpdateTask, 
-  onUpdateSubject, 
-  onDeleteTask, 
+export function SubjectsView({
+  subjects,
+  sortBy,
+  setSortBy,
+  onToggle,
+  onToggleTask,
+  onTogglePin,
+  onAddTask,
+  onUpdateTask,
+  onUpdateSubject,
+  onDeleteTask,
   onDeleteSubject,
-  sortTasks 
+  sortTasks
 }) {
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
+  const [columns, setColumns] = useState(3);
+  const gridRef = useRef(null);
 
   const addSubject = () => {
     if (newSubjectName.trim()) {
@@ -45,6 +47,43 @@ export function SubjectsView({
     }
   };
 
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const GAP = 16;
+    const MIN_CARD_WIDTH = 420; // Fixed minimum width for each card
+
+    const calculateColumns = () => {
+      const availableWidth = grid.clientWidth;
+
+      let newColumns = 1;
+      for (let col = 1; col <= 10; col++) {
+        const totalGapWidth = GAP * (col - 1);
+        const spacePerColumn = (availableWidth - totalGapWidth) / col;
+
+        if (spacePerColumn >= MIN_CARD_WIDTH) {
+          newColumns = col;
+        } else {
+          break;
+        }
+      }
+
+      if (newColumns !== columns) {
+        setColumns(newColumns);
+      }
+    };
+
+    calculateColumns();
+
+    const resizeObserver = new ResizeObserver(calculateColumns);
+    resizeObserver.observe(grid);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [columns]);
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -62,8 +101,12 @@ export function SubjectsView({
           </Button>
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+
+      <div
+        ref={gridRef}
+        className="grid gap-4"
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
         {subjects.map(subject => (
           <SubjectCard
             key={subject.id}

@@ -295,9 +295,9 @@ function App() {
           </CardContent>
         </Card>
 
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className={"flex flex-col gap-6 custom:flex-row"}>
           {/* Left Sidebar */}
-          <div className="w-full lg:w-80 flex-shrink-0">
+          <div className={"w-full flex-shrink-0 custom:w-80"}>
             <FocusTimer onSessionComplete={addFocusSession} />
             <DailyTodos />
           </div>
