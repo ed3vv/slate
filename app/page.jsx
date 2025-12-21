@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,17 +12,17 @@ import { TimelineView } from '@/components/ui/timeline-view';
 import { CalendarView } from '@/components/ui/calendar-view';
 import { AnalyticsView } from '@/components/ui/analytics-view';
 import { DateUtils } from '@/lib/dateUtils';
-import { Analytics } from '@vercel/analytics/react';
 
-
-
-function App() {
+export default function Home() {
   const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    if (saved !== null) {
-      return JSON.parse(saved);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode');
+      if (saved !== null) {
+        return JSON.parse(saved);
+      }
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     }
-    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return false;
   });
 
   useEffect(() => {
@@ -35,10 +37,12 @@ function App() {
 
   const [activeView, setActiveView] = useState('subjects');
   const [sortBy, setSortBy] = useState('dueDate');
-  
+
   const [subjects, setSubjects] = useState(() => {
-    const saved = localStorage.getItem('studentPlannerData');
-    if (saved) return JSON.parse(saved);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('studentPlannerData');
+      if (saved) return JSON.parse(saved);
+    }
     return [
       { id: 1, name: 'Subject 1', color: 'bg-blue-500', expanded: true, tasks: [] },
       { id: 2, name: 'Subject 2', color: 'bg-green-500', expanded: true, tasks: [] },
@@ -46,13 +50,19 @@ function App() {
   });
 
   const [events, setEvents] = useState(() => {
-    const saved = localStorage.getItem('studentPlannerEvents');
-    return saved ? JSON.parse(saved) : [];
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('studentPlannerEvents');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
   });
 
   const [focusSessions, setFocusSessions] = useState(() => {
-    const saved = localStorage.getItem('focusSessions');
-    return saved ? JSON.parse(saved) : [];
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('focusSessions');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
   });
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -71,16 +81,16 @@ function App() {
   }, [focusSessions]);
 
   const toggleSubject = (subjectId) => {
-    setSubjects(subjects.map(subject => 
+    setSubjects(subjects.map(subject =>
       subject.id === subjectId ? { ...subject, expanded: !subject.expanded } : subject
     ));
   };
 
   const toggleTaskComplete = (subjectId, taskId) => {
-    setSubjects(subjects.map(subject => 
+    setSubjects(subjects.map(subject =>
       subject.id === subjectId ? {
         ...subject,
-        tasks: subject.tasks.map(task => 
+        tasks: subject.tasks.map(task =>
           task.id === taskId ? { ...task, completed: !task.completed } : task
         )
       } : subject
@@ -88,10 +98,10 @@ function App() {
   };
 
   const toggleTaskPin = (subjectId, taskId) => {
-    setSubjects(subjects.map(subject => 
+    setSubjects(subjects.map(subject =>
       subject.id === subjectId ? {
         ...subject,
-        tasks: subject.tasks.map(task => 
+        tasks: subject.tasks.map(task =>
           task.id === taskId ? { ...task, pinned: !task.pinned } : task
         )
       } : subject
@@ -100,7 +110,7 @@ function App() {
 
   const addTask = (subjectId, taskTitle, dueDate, priority) => {
     if (taskTitle.trim()) {
-      setSubjects(subjects.map(subject => 
+      setSubjects(subjects.map(subject =>
         subject.id === subjectId ? {
           ...subject,
           tasks: [...subject.tasks, {
@@ -117,10 +127,10 @@ function App() {
   };
 
   const updateTask = (subjectId, taskId, updates) => {
-    setSubjects(subjects.map(subject => 
+    setSubjects(subjects.map(subject =>
       subject.id === subjectId ? {
         ...subject,
-        tasks: subject.tasks.map(task => 
+        tasks: subject.tasks.map(task =>
           task.id === taskId ? { ...task, ...updates } : task
         )
       } : subject
@@ -131,14 +141,14 @@ function App() {
     if (subjectId === 'add') {
       setSubjects([...subjects, updates]);
     } else {
-      setSubjects(subjects.map(subject => 
+      setSubjects(subjects.map(subject =>
         subject.id === subjectId ? { ...subject, ...updates } : subject
       ));
     }
   };
 
   const deleteTask = (subjectId, taskId) => {
-    setSubjects(subjects.map(subject => 
+    setSubjects(subjects.map(subject =>
       subject.id === subjectId ? {
         ...subject,
         tasks: subject.tasks.filter(task => task.id !== taskId)
@@ -196,11 +206,11 @@ function App() {
     const allTasks = [];
     subjects.forEach(subject => {
       subject.tasks.forEach(task => {
-        allTasks.push({ 
-          ...task, 
-          subjectName: subject.name, 
-          subjectColor: subject.color, 
-          subjectId: subject.id 
+        allTasks.push({
+          ...task,
+          subjectName: subject.name,
+          subjectColor: subject.color,
+          subjectId: subject.id
         });
       });
     });
@@ -342,7 +352,7 @@ function App() {
             )}
 
             {activeView === 'timeline' && (
-              <TimelineView 
+              <TimelineView
                 tasks={getAllTasks()}
                 sortBy={sortBy}
                 setSortBy={setSortBy}
@@ -364,8 +374,8 @@ function App() {
             )}
 
             {activeView === 'analytics' && (
-              <AnalyticsView 
-                focusSessions={focusSessions} 
+              <AnalyticsView
+                focusSessions={focusSessions}
                 onDeleteSession={deleteFocusSession}
               />
             )}
@@ -380,9 +390,6 @@ function App() {
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
       />
-      <Analytics />
     </div>
   );
 }
-
-export default App;

@@ -1,3 +1,4 @@
+'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,8 +7,11 @@ import { Plus, CheckSquare, Square, Trash2 } from 'lucide-react';
 
 export function DailyTodos() {
   const [todos, setTodos] = useState(() => {
-    const saved = localStorage.getItem('dailyTodos');
-    return saved ? JSON.parse(saved) : [];
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('dailyTodos');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
   });
   
   const [newTodo, setNewTodo] = useState('');

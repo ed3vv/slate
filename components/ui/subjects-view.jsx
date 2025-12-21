@@ -1,3 +1,4 @@
+'use client';
 import { useState, useRef, useLayoutEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -1,3 +1,13 @@
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build
+
 # Logs
 logs
 *.log
@@ -7,10 +17,12 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Local env files
+.env*.local
 *.local
+
+# Vercel
+.vercel
 
 # Editor directories and files
 .vscode/*
