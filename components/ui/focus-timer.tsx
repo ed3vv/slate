@@ -4,12 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Pause, Square } from 'lucide-react';
 
-export function FocusTimer({ onSessionComplete }) {
-  const [isRunning, setIsRunning] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [sessionStartTime, setSessionStartTime] = useState(null);
-  const [accumulatedSeconds, setAccumulatedSeconds] = useState(0);
-  const intervalRef = useRef(null);
+interface FocusTimerProps {
+  onSessionComplete: (duration: number) => void;
+}
+
+export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [accumulatedSeconds, setAccumulatedSeconds] = useState<number>(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (isRunning) {
@@ -19,7 +23,7 @@ export function FocusTimer({ onSessionComplete }) {
 
       intervalRef.current = setInterval(() => {
         const now = Date.now();
-        const currentSessionSeconds = Math.floor((now - sessionStartTime) / 1000);
+        const currentSessionSeconds = Math.floor((now - sessionStartTime!) / 1000);
         setElapsedSeconds(accumulatedSeconds + currentSessionSeconds);
       }, 100);
     } else {
@@ -35,7 +39,7 @@ export function FocusTimer({ onSessionComplete }) {
     };
   }, [isRunning, sessionStartTime, accumulatedSeconds]);
 
-  const formatTime = (totalSeconds) => {
+  const formatTime = (totalSeconds: number): string => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const secs = totalSeconds % 60;

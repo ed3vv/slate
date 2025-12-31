@@ -3,18 +3,30 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Filter, ArrowUpDown, CheckSquare } from 'lucide-react';
 import { TimelineTaskItem } from './timeline-task-item';
+import type { TaskWithSubject, Task, SortBy } from '@/types';
 
-export function TimelineView({ 
-  tasks, 
-  sortBy, 
-  setSortBy, 
-  onToggleTask, 
-  onTogglePin, 
-  onUpdateTask, 
-  onDeleteTask, 
-  sortTasks 
-}) {
-  const incompleteTasks = sortTasks(tasks.filter(t => !t.completed));
+interface TimelineViewProps {
+  tasks: TaskWithSubject[];
+  sortBy: SortBy;
+  setSortBy: (sortBy: SortBy) => void;
+  onToggleTask: (subjectId: number, taskId: number) => void;
+  onTogglePin: (subjectId: number, taskId: number) => void;
+  onUpdateTask: (subjectId: number, taskId: number, updates: Partial<Task>) => void;
+  onDeleteTask: (subjectId: number, taskId: number) => void;
+  sortTasks: (tasks: Task[]) => Task[];
+}
+
+export function TimelineView({
+  tasks,
+  sortBy,
+  setSortBy,
+  onToggleTask,
+  onTogglePin,
+  onUpdateTask,
+  onDeleteTask,
+  sortTasks
+}: TimelineViewProps) {
+  const incompleteTasks = sortTasks(tasks.filter(t => !t.completed)) as TaskWithSubject[];
   const completedTasks = tasks.filter(t => t.completed);
 
   return (
@@ -35,7 +47,7 @@ export function TimelineView({
               Sort by {sortBy === 'dueDate' ? 'Priority' : 'Due Date'}
             </Button>
           </div>
-          
+
           {incompleteTasks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <div className="flex justify-center mb-3">

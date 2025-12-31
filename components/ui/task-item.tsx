@@ -6,12 +6,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { CheckSquare, Square, Edit, Trash2 } from 'lucide-react';
 import { DateUtils } from '@/lib/dateUtils';
+import type { Task, Priority } from '@/types';
 
-export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin, onUpdate, onDelete, compact = false }) {
-  const [editing, setEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(task.title);
-  const [editDate, setEditDate] = useState(task.dueDate);
-  const [editPriority, setEditPriority] = useState(task.priority);
+interface TaskItemProps {
+  task: Task;
+  subjectId: number;
+  subjectColor: string;
+  onToggle: () => void;
+  onTogglePin: () => void;
+  onUpdate: (updates: Partial<Task>) => void;
+  onDelete: () => void;
+  compact?: boolean;
+}
+
+export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin, onUpdate, onDelete, compact = false }: TaskItemProps) {
+  const [editing, setEditing] = useState<boolean>(false);
+  const [editTitle, setEditTitle] = useState<string>(task.title);
+  const [editDate, setEditDate] = useState<string>(task.dueDate);
+  const [editPriority, setEditPriority] = useState<Priority>(task.priority);
 
   const handleUpdate = () => {
     onUpdate({ title: editTitle, dueDate: editDate, priority: editPriority });
@@ -20,20 +32,20 @@ export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin,
 
   const isOverdue = task.dueDate < DateUtils.today() && !task.completed;
 
-  const priorityColors = {
+  const priorityColors: Record<Priority, string> = {
     high: 'bg-[hsl(var(--priority-high-bg))] text-[hsl(var(--priority-high-fg))] hover:bg-[hsl(var(--priority-high-bg))]',
     medium: 'bg-[hsl(var(--priority-medium-bg))] text-[hsl(var(--priority-medium-fg))] hover:bg-[hsl(var(--priority-medium-bg))]',
     low: 'bg-[hsl(var(--priority-low-bg))] text-[hsl(var(--priority-low-fg))] hover:bg-[hsl(var(--priority-low-bg))]'
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string): string => {
     const today = DateUtils.today();
-    
+
     if (dateString === today) return 'Today';
     if (dateString < today) {
       return `${DateUtils.format(dateString)}`;
     }
-    
+
     return DateUtils.format(dateString);
   };
 
@@ -53,7 +65,7 @@ export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin,
             onChange={(e) => setEditDate(e.target.value)}
             className="flex-1 bg-input"
           />
-          <Select value={editPriority} onValueChange={setEditPriority}>
+          <Select value={editPriority} onValueChange={(value) => setEditPriority(value as Priority)}>
             <SelectTrigger className="w-32 bg-input">
               <SelectValue />
             </SelectTrigger>

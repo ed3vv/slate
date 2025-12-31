@@ -5,16 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, CheckSquare, Square, Trash2 } from 'lucide-react';
 
+interface Todo {
+  id: number;
+  text: string;
+  completed: boolean;
+}
+
 export function DailyTodos() {
-  const [todos, setTodos] = useState(() => {
+  const [todos, setTodos] = useState<Todo[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('dailyTodos');
       return saved ? JSON.parse(saved) : [];
     }
     return [];
   });
-  
-  const [newTodo, setNewTodo] = useState('');
+
+  const [newTodo, setNewTodo] = useState<string>('');
 
   useEffect(() => {
     localStorage.setItem('dailyTodos', JSON.stringify(todos));
@@ -31,13 +37,13 @@ export function DailyTodos() {
     }
   };
 
-  const toggleTodo = (id) => {
-    setTodos(todos.map(todo => 
+  const toggleTodo = (id: number) => {
+    setTodos(todos.map(todo =>
       todo.id === id ? { ...todo, completed: !todo.completed } : todo
     ));
   };
 
-  const deleteTodo = (id) => {
+  const deleteTodo = (id: number) => {
     setTodos(todos.filter(todo => todo.id !== id));
   };
 

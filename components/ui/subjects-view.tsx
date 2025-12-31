@@ -5,6 +5,22 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, ArrowUpDown } from 'lucide-react';
 import { SubjectCard } from './subject-card';
+import type { Subject, Task, SortBy, Priority } from '@/types';
+
+interface SubjectsViewProps {
+  subjects: Subject[];
+  sortBy: SortBy;
+  setSortBy: (sortBy: SortBy) => void;
+  onToggle: (subjectId: number) => void;
+  onToggleTask: (subjectId: number, taskId: number) => void;
+  onTogglePin: (subjectId: number, taskId: number) => void;
+  onAddTask: (subjectId: number, title: string, dueDate: string, priority: Priority) => void;
+  onUpdateTask: (subjectId: number, taskId: number, updates: Partial<Task>) => void;
+  onUpdateSubject: (subjectId: number | 'add', updates: Subject) => void;
+  onDeleteTask: (subjectId: number, taskId: number) => void;
+  onDeleteSubject: (subjectId: number) => void;
+  sortTasks: (tasks: Task[]) => Task[];
+}
 
 export function SubjectsView({
   subjects,
@@ -19,11 +35,11 @@ export function SubjectsView({
   onDeleteTask,
   onDeleteSubject,
   sortTasks
-}) {
-  const [showAddSubject, setShowAddSubject] = useState(false);
-  const [newSubjectName, setNewSubjectName] = useState('');
-  const [columns, setColumns] = useState(3);
-  const gridRef = useRef(null);
+}: SubjectsViewProps) {
+  const [showAddSubject, setShowAddSubject] = useState<boolean>(false);
+  const [newSubjectName, setNewSubjectName] = useState<string>('');
+  const [columns, setColumns] = useState<number>(3);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const addSubject = () => {
     if (newSubjectName.trim()) {
@@ -53,7 +69,7 @@ export function SubjectsView({
     if (!grid) return;
 
     const GAP = 16;
-    const MIN_CARD_WIDTH = 420; // Fixed minimum width for each card
+    const MIN_CARD_WIDTH = 420;
 
     const calculateColumns = () => {
       const availableWidth = grid.clientWidth;

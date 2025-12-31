@@ -7,6 +7,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronDown, ChevronRight, Edit, Trash2, Plus } from 'lucide-react';
 import { TaskItem } from './task-item';
 import { Progress } from '@/components/ui/progress';
+import type { Subject, Task, Priority } from '@/types';
+
+interface SubjectCardProps {
+  subject: Subject;
+  onToggle: (subjectId: number) => void;
+  onToggleTask: (subjectId: number, taskId: number) => void;
+  onTogglePin: (subjectId: number, taskId: number) => void;
+  onAddTask: (subjectId: number, title: string, dueDate: string, priority: Priority) => void;
+  onUpdateTask: (subjectId: number, taskId: number, updates: Partial<Task>) => void;
+  onUpdateSubject: (subjectId: number, updates: Partial<Subject>) => void;
+  onDeleteTask: (subjectId: number, taskId: number) => void;
+  onDeleteSubject: (subjectId: number) => void;
+  sortTasks: (tasks: Task[]) => Task[];
+}
 
 export function SubjectCard({
   subject,
@@ -19,14 +33,14 @@ export function SubjectCard({
   onDeleteTask,
   onDeleteSubject,
   sortTasks
-}) {
-  const [showAddTask, setShowAddTask] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskDate, setNewTaskDate] = useState('');
-  const [newTaskPriority, setNewTaskPriority] = useState('medium');
-  const [editingSubject, setEditingSubject] = useState(false);
-  const [editSubjectName, setEditSubjectName] = useState(subject.name);
-  const [showColorPicker, setShowColorPicker] = useState(false);
+}: SubjectCardProps) {
+  const [showAddTask, setShowAddTask] = useState<boolean>(false);
+  const [newTaskTitle, setNewTaskTitle] = useState<string>('');
+  const [newTaskDate, setNewTaskDate] = useState<string>('');
+  const [newTaskPriority, setNewTaskPriority] = useState<Priority>('medium');
+  const [editingSubject, setEditingSubject] = useState<boolean>(false);
+  const [editSubjectName, setEditSubjectName] = useState<string>(subject.name);
+  const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
 
   const availableColors = [
     'bg-[hsl(var(--subject-violet))]',
@@ -54,7 +68,7 @@ export function SubjectCard({
     }
   };
 
-  const handleColorChange = (color) => {
+  const handleColorChange = (color: string) => {
     onUpdateSubject(subject.id, { color: color });
     setShowColorPicker(false);
   };
@@ -179,7 +193,7 @@ export function SubjectCard({
                   onChange={(e) => setNewTaskDate(e.target.value)}
                   className="flex-1 bg-input"
                 />
-                <Select value={newTaskPriority} onValueChange={setNewTaskPriority}>
+                <Select value={newTaskPriority} onValueChange={(value) => setNewTaskPriority(value as Priority)}>
                   <SelectTrigger className="w-32 bg-input">
                     <SelectValue />
                   </SelectTrigger>

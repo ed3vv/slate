@@ -5,7 +5,8 @@ https://slate-eta-seven.vercel.app/
 
 ## Tech stack
 
-- React + Vite
-- Tailwind CSS
-- shadcn/ui
+- Nextjs
+- Firebase
+- Tailwind
+- shadcn
 

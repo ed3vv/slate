@@ -6,12 +6,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { CheckSquare, Square, Edit, Trash2 } from 'lucide-react';
 import { DateUtils } from '@/lib/dateUtils';
+import type { TaskWithSubject, Priority, Task } from '@/types';
 
-export function TimelineTaskItem({ task, onToggle, onTogglePin, onUpdate, onDelete }) {
-  const [editing, setEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(task.title);
-  const [editDate, setEditDate] = useState(task.dueDate);
-  const [editPriority, setEditPriority] = useState(task.priority);
+interface TimelineTaskItemProps {
+  task: TaskWithSubject;
+  onToggle: () => void;
+  onTogglePin: () => void;
+  onUpdate: (updates: Partial<Task>) => void;
+  onDelete: () => void;
+}
+
+export function TimelineTaskItem({ task, onToggle, onTogglePin, onUpdate, onDelete }: TimelineTaskItemProps) {
+  const [editing, setEditing] = useState<boolean>(false);
+  const [editTitle, setEditTitle] = useState<string>(task.title);
+  const [editDate, setEditDate] = useState<string>(task.dueDate);
+  const [editPriority, setEditPriority] = useState<Priority>(task.priority);
 
   const handleUpdate = () => {
     onUpdate({ title: editTitle, dueDate: editDate, priority: editPriority });
@@ -20,20 +29,20 @@ export function TimelineTaskItem({ task, onToggle, onTogglePin, onUpdate, onDele
 
   const isOverdue = task.dueDate < DateUtils.today() && !task.completed;
 
-  const priorityColors = {
+  const priorityColors: Record<Priority, string> = {
     high: 'bg-[hsl(var(--priority-high-bg))] text-[hsl(var(--priority-high-fg))] border-[hsl(var(--priority-high-border))] hover:bg-[hsl(var(--priority-high-bg))]',
     medium: 'bg-[hsl(var(--priority-medium-bg))] text-[hsl(var(--priority-medium-fg))] border-[hsl(var(--priority-medium-border))] hover:bg-[hsl(var(--priority-medium-bg))]',
     low: 'bg-[hsl(var(--priority-low-bg))] text-[hsl(var(--priority-low-fg))] border-[hsl(var(--priority-low-border))] hover:bg-[hsl(var(--priority-low-bg))]'
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string): string => {
     const today = DateUtils.today();
-    
+
     if (dateString === today) return 'Today';
     if (dateString < today) {
       return `${DateUtils.format(dateString)} (Overdue)`;
     }
-    
+
     return DateUtils.format(dateString);
   };
 
@@ -53,7 +62,7 @@ export function TimelineTaskItem({ task, onToggle, onTogglePin, onUpdate, onDele
             onChange={(e) => setEditDate(e.target.value)}
             className="flex-1 bg-input"
           />
-          <Select value={editPriority} onValueChange={setEditPriority}>
+          <Select value={editPriority} onValueChange={(value) => setEditPriority(value as Priority)}>
             <SelectTrigger className="w-40 bg-input">
               <SelectValue />
             </SelectTrigger>

@@ -5,16 +5,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import { DateUtils } from '@/lib/dateUtils';
+import type { TaskWithSubject, Event } from '@/types';
 
-export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }) {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [showAddEvent, setShowAddEvent] = useState(false);
-  const [newEventTitle, setNewEventTitle] = useState('');
-  const [newEventDate, setNewEventDate] = useState('');
-  const [newEventTime, setNewEventTime] = useState('');
-  const [selectedDate, setSelectedDate] = useState(null);
+interface CalendarViewProps {
+  tasks: TaskWithSubject[];
+  events: Event[];
+  onAddEvent: (event: Omit<Event, 'id'>) => void;
+  onDeleteEvent: (eventId: number) => void;
+}
 
-  const getDaysInMonth = (date) => {
+export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }: CalendarViewProps) {
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [showAddEvent, setShowAddEvent] = useState<boolean>(false);
+  const [newEventTitle, setNewEventTitle] = useState<string>('');
+  const [newEventDate, setNewEventDate] = useState<string>('');
+  const [newEventTime, setNewEventTime] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const getDaysInMonth = (date: Date): (Date | null)[] => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -22,7 +30,7 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }) {
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
 
-    const days = [];
+    const days: (Date | null)[] = [];
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
@@ -37,8 +45,9 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }) {
       onAddEvent({
         title: newEventTitle,
         date: newEventDate,
+        color: '',
         time: newEventTime
-      });
+      } as Omit<Event, 'id'>);
       setNewEventTitle('');
       setNewEventDate('');
       setNewEventTime('');
@@ -46,7 +55,7 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }) {
     }
   };
 
-  const getItemsForDate = (date) => {
+  const getItemsForDate = (date: Date | null): { tasks: TaskWithSubject[]; events: Event[] } => {
     if (!date) return { tasks: [], events: [] };
     const dateStr = date.toLocaleDateString('en-CA');
     const dayTasks = tasks.filter(t => t.dueDate === dateStr && !t.completed);
@@ -135,12 +144,12 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }) {
               {day}
             </div>
           ))}
-          
+
           {days.map((day, index) => {
             if (!day) {
               return <div key={`empty-${index}`} className="aspect-square"></div>;
             }
-            
+
             const dateStr = day.toLocaleDateString('en-CA');
             const isToday = dateStr === today;
             const { tasks: dayTasks, events: dayEvents } = getItemsForDate(day);
@@ -209,7 +218,7 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }) {
                       <div className="flex items-center gap-2">
                         <CalendarIcon className="h-4 w-4 text-foreground" />
                         <span className="text-foreground">{event.title}</span>
-                        {event.time && <span className="text-sm text-muted-foreground">{event.time}</span>}
+                        {(event as any).time && <span className="text-sm text-muted-foreground">{(event as any).time}</span>}
                       </div>
                       <Button
                         variant="ghost"
@@ -225,7 +234,7 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }) {
               </div>
             )}
 
-            {getItemsForDate(DateUtils.fromString(selectedDate)).tasks.length === 0 && 
+            {getItemsForDate(DateUtils.fromString(selectedDate)).tasks.length === 0 &&
              getItemsForDate(DateUtils.fromString(selectedDate)).events.length === 0 && (
               <p className="text-center py-4 text-muted-foreground">No tasks or events for this day</p>
             )}

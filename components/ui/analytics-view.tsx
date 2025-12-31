@@ -4,11 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, Trash2 } from 'lucide-react';
 import { Chart } from 'chart.js/auto';
+import type { FocusSession } from '@/types';
 
-export function AnalyticsView({ focusSessions, onDeleteSession }) {
-  const chartRef = useRef(null);
-  const chartInstance = useRef(null);
-  const [timeframe, setTimeframe] = useState('week');
+interface AnalyticsViewProps {
+  focusSessions: FocusSession[];
+  onDeleteSession: (timestamp: number) => void;
+}
+
+export function AnalyticsView({ focusSessions, onDeleteSession }: AnalyticsViewProps) {
+  const chartRef = useRef<HTMLCanvasElement>(null);
+  const chartInstance = useRef<Chart | null>(null);
+  const [timeframe, setTimeframe] = useState<'week' | 'month'>('week');
 
   useEffect(() => {
     if (chartRef.current) {
@@ -17,7 +23,7 @@ export function AnalyticsView({ focusSessions, onDeleteSession }) {
       }
 
       const days = timeframe === 'week' ? 7 : 30;
-      const dateRange = [];
+      const dateRange: string[] = [];
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
@@ -30,6 +36,8 @@ export function AnalyticsView({ focusSessions, onDeleteSession }) {
       });
 
       const ctx = chartRef.current.getContext('2d');
+      if (!ctx) return;
+
       const chartBgColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-bar-bg').trim();
       const chartBorderColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-bar-border').trim();
 
@@ -79,22 +87,22 @@ export function AnalyticsView({ focusSessions, onDeleteSession }) {
     };
   }, [focusSessions, timeframe]);
 
-  const getTotalTime = (days) => {
+  const getTotalTime = (days: number): number => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const cutoffStr = cutoff.toLocaleDateString('en-CA');
-    
+
     return focusSessions
       .filter(s => s.date >= cutoffStr)
       .reduce((sum, s) => sum + s.duration, 0);
   };
 
-  const getAveragePerDay = (days) => {
+  const getAveragePerDay = (days: number): number => {
     const total = getTotalTime(days);
     return total / days;
   };
 
-  const formatDuration = (seconds) => {
+  const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
