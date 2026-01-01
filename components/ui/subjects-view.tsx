@@ -16,7 +16,8 @@ interface SubjectsViewProps {
   onTogglePin: (subjectId: number, taskId: number) => void;
   onAddTask: (subjectId: number, title: string, dueDate: string, priority: Priority) => void;
   onUpdateTask: (subjectId: number, taskId: number, updates: Partial<Task>) => void;
-  onUpdateSubject: (subjectId: number | 'add', updates: Subject) => void;
+  onUpdateSubject: (subjectId: number, updates: Partial<Subject>) => void;
+  onAddSubject: (subject: Subject) => void;
   onDeleteTask: (subjectId: number, taskId: number) => void;
   onDeleteSubject: (subjectId: number) => void;
   sortTasks: (tasks: Task[]) => Task[];
@@ -30,6 +31,7 @@ export function SubjectsView({
   onToggleTask,
   onTogglePin,
   onAddTask,
+  onAddSubject,
   onUpdateTask,
   onUpdateSubject,
   onDeleteTask,
@@ -52,13 +54,14 @@ export function SubjectsView({
         'bg-[hsl(var(--subject-indigo))]'
       ];
       const randomColor = colors[Math.floor(Math.random() * colors.length)];
-      onUpdateSubject('add', {
+      onAddSubject({
         id: Date.now(),
         name: newSubjectName,
         color: randomColor,
         expanded: false,
         tasks: []
       });
+
       setNewSubjectName('');
       setShowAddSubject(false);
     }

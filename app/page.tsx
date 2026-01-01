@@ -70,12 +70,12 @@ export default function Home() {
     } : s));
   };
 
-  const updateSubject = (subjectId: number | 'add', updates: Subject) => {
-    if (subjectId === 'add') {
-      setSubjects([...subjects, updates]);
-    } else {
-      setSubjects(subjects.map(s => s.id === subjectId ? { ...s, ...updates } : s));
-    }
+  const addSubject = (subject: Subject) => {
+    setSubjects([...subjects, subject]);
+  };
+
+  const updateSubject = (subjectId: number, updates: Partial<Subject>) => {
+    setSubjects(subjects.map(s => s.id === subjectId ? { ...s, ...updates } : s));
   };
 
   const deleteTask = (subjectId: number, taskId: number) => {
@@ -189,6 +189,7 @@ export default function Home() {
                 onToggleTask={toggleTaskComplete}
                 onTogglePin={toggleTaskPin}
                 onAddTask={addTask}
+                onAddSubject={addSubject}
                 onUpdateTask={updateTask}
                 onUpdateSubject={updateSubject}
                 onDeleteTask={deleteTask}
