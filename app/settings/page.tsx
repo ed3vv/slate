@@ -26,7 +26,7 @@ export default function SettingsPage() {
             </Button>
             <Button
                 asChild
-                onClick={() => signOut(auth)}
+                onClick={() => auth && signOut(auth)}
                 variant = "outline"
                 className="h-9 bg-card hover:bg-secondary text-foreground"
             >

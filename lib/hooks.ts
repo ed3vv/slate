@@ -9,6 +9,11 @@ export function useAuth(requireAuth = true) {
   const router = useRouter();
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
       setLoading(false);

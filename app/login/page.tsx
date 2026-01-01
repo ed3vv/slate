@@ -9,6 +9,10 @@ export default function SignIn() {
   const [error, setError] = useState('');
 
   const handleGoogleSignIn = async () => {
+    if (!auth || !googleProvider) {
+      setError('Authentication not initialized');
+      return;
+    }
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
