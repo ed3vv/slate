@@ -5,16 +5,14 @@ import Link from "next/link";
 import { Home } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { supabase } from "@/lib/supabaseClient";
 
 
 export default function SettingsPage() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    if (!auth) return;
-    await signOut(auth);
+    await supabase.auth.signOut();
     router.push("/login");
   };
 

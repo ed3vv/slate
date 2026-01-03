@@ -1,31 +1,47 @@
-import { useState, useEffect } from 'react';
-import { auth } from '@/lib/firebase';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { User } from 'firebase/auth';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from './supabaseClient';
 
 export function useAuth(requireAuth = true) {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const router = useRouter();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
-
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
       setLoading(false);
 
-      if (requireAuth && !currentUser) {
-        router.push('/login');
-      } else if (!requireAuth && currentUser) {
+      // Only redirect on sign-in/sign-out events, not on token refresh
+      if (event === 'SIGNED_IN' && !requireAuth) {
         router.push('/');
+      } else if (event === 'SIGNED_OUT' && requireAuth) {
+        router.push('/login');
       }
     });
-    return () => unsubscribe();
-  }, [router, requireAuth]);
+
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+
+      // Only redirect once on initial page load
+      if (!hasRedirected.current) {
+        if (requireAuth && !data.session?.user) {
+          router.push('/login');
+          hasRedirected.current = true;
+        } else if (!requireAuth && data.session?.user) {
+          router.push('/');
+          hasRedirected.current = true;
+        }
+      }
+    });
+
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
+  }, [requireAuth, router]);
 
   return { user, loading };
 }

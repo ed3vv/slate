@@ -13,7 +13,7 @@ export default function SubjectsSection() {
 
     const { user, loading: authLoading } = useAuth(true)
 
-    const { subjects, loading, error, addSubject, updateSubject, deleteSubject, addTask, updateTask, deleteTask } = usePlannerData(!authLoading && !!user, user?.uid)
+    const { subjects, loading, error, addSubject, updateSubject, deleteSubject, addTask, updateTask, deleteTask } = usePlannerData(!authLoading && !!user, user?.id)
 
     const toggleSubject = async (subjectId: string) => {
         const subject = subjects.find(s => s.id === subjectId)

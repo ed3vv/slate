@@ -1,52 +1,30 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, CheckSquare, Square, Trash2 } from 'lucide-react';
-
-interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
-}
+import { useDailyTodos } from '@/lib/useDailyTodos';
+import { useAuth } from '@/lib/hooks';
 
 export function DailyTodos() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-
+  const { user, loading: authLoading } = useAuth(false);
+  const { todos, addTodo: addTodoDb, toggleTodo: toggleTodoDb, deleteTodo: deleteTodoDb } = useDailyTodos(!authLoading && !!user, user?.id);
   const [newTodo, setNewTodo] = useState<string>('');
-
-  // Hydrate from localStorage after mount to avoid SSR/client mismatch
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem('dailyTodos');
-    setTodos(saved ? JSON.parse(saved) : []);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem('dailyTodos', JSON.stringify(todos));
-  }, [todos]);
 
   const addTodo = () => {
     if (newTodo.trim()) {
-      setTodos([...todos, {
-        id: Date.now(),
-        text: newTodo,
-        completed: false
-      }]);
+      addTodoDb(newTodo);
       setNewTodo('');
     }
   };
 
-  const toggleTodo = (id: number) => {
-    setTodos(todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
+  const toggleTodo = (id: string) => {
+    toggleTodoDb(id);
   };
 
-  const deleteTodo = (id: number) => {
-    setTodos(todos.filter(todo => todo.id !== id));
+  const deleteTodo = (id: string) => {
+    deleteTodoDb(id);
   };
 
   return (
@@ -79,7 +57,7 @@ export function DailyTodos() {
               <div
                 key={todo.id}
                 className={`flex items-center gap-2 p-2 rounded-md bg-secondary hover:opacity-80 transition-colors ${
-                  todo.completed ? 'opacity-50' : ''
+                  todo.done ? 'opacity-50' : ''
                 }`}
               >
                 <Button
@@ -88,10 +66,10 @@ export function DailyTodos() {
                   onClick={() => toggleTodo(todo.id)}
                   className="h-8 w-8 hover:bg-transparent"
                 >
-                  {todo.completed ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+                  {todo.done ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                 </Button>
-                <span className={`flex-1 text-sm text-foreground ${todo.completed ? 'line-through' : ''}`}>
-                  {todo.text}
+                <span className={`flex-1 text-sm text-foreground ${todo.done ? 'line-through' : ''}`}>
+                  {todo.title}
                 </span>
                 <Button
                   variant="ghost"

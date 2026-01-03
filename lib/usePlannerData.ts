@@ -1,55 +1,49 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import { DateUtils } from "@/lib/dateUtils";
 import type { Priority, Subject, Task } from "@/types";
+import { supabase } from "./supabaseClient";
 
-type ApiPriority = "LOW" | "MEDIUM" | "HIGH";
-
-type ApiTask = {
+type DbTask = {
   id: string;
-  subjectId: string;
+  subject_id: string;
   title: string;
   done: boolean;
-  priority: ApiPriority;
-  // Nest + Prisma serialize Date to ISO strings, but be lenient in case a Date slips through
-  dueDate?: string | Date | null;
+  priority: string;
+  due_date?: string | Date | null;
   pinned?: boolean | null;
 };
 
-type ApiSubject = {
+type DbSubject = {
   id: string;
   name: string;
   color?: string | null;
   expanded?: boolean | null;
-  tasks?: ApiTask[];
+  tasks?: DbTask[];
 };
 
-const toClientPriority = (priority: ApiPriority): Priority => priority.toLowerCase() as Priority;
-const toApiPriority = (priority: Priority): ApiPriority => priority.toUpperCase() as ApiPriority;
-
+const toClientPriority = (priority: string): Priority => (priority?.toLowerCase() as Priority) ?? "medium";
+const toDbPriority = (priority: Priority): string => priority.toUpperCase();
 const toDateOnly = (value?: string | Date | null) => {
   if (!value) return DateUtils.today();
   const iso = value instanceof Date ? value.toISOString() : value;
   return iso.slice(0, 10);
 };
 
-const toIsoDate = (value?: string) => (value ? new Date(`${value}T00:00:00`).toISOString() : undefined);
-
-const mapTaskFromApi = (task: ApiTask): Task => ({
+const mapTaskFromDb = (task: DbTask): Task => ({
   id: task.id,
   title: task.title,
-  dueDate: toDateOnly(task.dueDate),
+  dueDate: toDateOnly(task.due_date),
   completed: task.done,
   priority: toClientPriority(task.priority),
   pinned: Boolean(task.pinned),
 });
 
-const mapSubjectFromApi = (subject: ApiSubject): Subject => ({
+const mapSubjectFromDb = (subject: DbSubject): Subject => ({
   id: subject.id,
   name: subject.name,
   color: subject.color ?? "bg-[hsl(var(--subject-sky))]",
   expanded: subject.expanded ?? true,
-  tasks: (subject.tasks ?? []).map(mapTaskFromApi),
+  tasks: (subject.tasks ?? []).map(mapTaskFromDb),
 });
 
 export function usePlannerData(enabled: boolean = true, userKey?: string) {
@@ -76,8 +70,10 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
           setSubjects((current) => afterSuccess(current, result));
         }
       } catch (e: any) {
-        setError(e?.message ?? String(e));
+        const errorMessage = e?.message || e?.error_description || e?.details || JSON.stringify(e);
+        setError(errorMessage);
         setSubjects(prevSnapshot);
+        console.error('Operation error:', e);
         throw e;
       }
     },
@@ -88,14 +84,46 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
     setLoading(true);
     setError(null);
     try {
-      const data: ApiSubject[] = await apiGet("/subjects");
-      setSubjects(data.map(mapSubjectFromApi));
+      // First get subjects - RLS will automatically filter by auth.uid()
+      const { data: subjectsData, error: subjectsErr } = await supabase
+        .from("subjects")
+        .select("id,name,color,expanded")
+        .order("createdAt", { ascending: true });
+
+      if (subjectsErr) throw subjectsErr;
+
+      // Then get tasks for those subjects
+      const subjectIds = (subjectsData ?? []).map(s => s.id);
+      let tasksData: DbTask[] = [];
+
+      if (subjectIds.length > 0) {
+        const { data: tasks, error: tasksErr } = await supabase
+          .from("tasks")
+          .select("id,title,priority,done,pinned,due_date,subject_id")
+          .in("subject_id", subjectIds);
+
+        if (tasksErr) {
+          console.error('Tasks query error:', tasksErr);
+          throw tasksErr;
+        }
+        tasksData = tasks ?? [];
+      }
+
+      // Combine subjects with their tasks
+      const subjectsWithTasks = (subjectsData ?? []).map(subject => ({
+        ...subject,
+        tasks: tasksData.filter(task => task.subject_id === subject.id)
+      }));
+
+      setSubjects(subjectsWithTasks.map(mapSubjectFromDb));
     } catch (e: any) {
-      setError(e?.message ?? String(e));
+      const errorMessage = e?.message || e?.error_description || JSON.stringify(e);
+      setError(errorMessage);
+      console.error('Refresh error:', e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userKey]);
 
   // Clear data when disabled or user changes away
   useEffect(() => {
@@ -103,15 +131,15 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
       setSubjects([]);
       setError(null);
       setLoading(false);
+      return;
     }
-  }, [enabled, userKey]);
-
-  useEffect(() => {
-    if (!enabled || !userKey) return;
     refresh();
   }, [enabled, userKey, refresh]);
 
   const addSubject = useCallback(async (name: string, color: string) => {
+    if (!userKey) {
+      return;
+    }
     setError(null);
     const tempId = `temp-${Date.now()}`;
 
@@ -126,52 +154,91 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
           tasks: [],
         },
       ],
-      async () => apiPost("/subjects", { name, color }),
-      (current, created: ApiSubject) =>
-        current.map((s) => (s.id === tempId ? mapSubjectFromApi({ ...created, tasks: created.tasks ?? [] }) : s)),
+      async () => {
+        const { data, error: err } = await supabase
+          .from("subjects")
+          .insert({
+            id: crypto.randomUUID(),
+            name,
+            color,
+            expanded: true,
+            user_id: userKey,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          })
+          .select("id,name,color,expanded")
+          .single();
+        if (err) throw err;
+        return data as DbSubject;
+      },
+      (current, created: DbSubject) =>
+        current.map((s) => (s.id === tempId ? mapSubjectFromDb({ ...created, tasks: created.tasks ?? [] }) : s)),
     );
-  }, [runOptimistic]);
+  }, [runOptimistic, userKey]);
 
   const updateSubject = useCallback(async (subjectId: string, updates: Partial<Subject>) => {
+    if (!userKey) {
+      return;
+    }
     setError(null);
     await runOptimistic(
       (prev) =>
         prev.map((s) => (s.id === subjectId ? { ...s, ...updates } : s)),
-      async () =>
-        apiPatch(`/subjects/${subjectId}`, {
-          ...(updates.name !== undefined ? { name: updates.name } : {}),
-          ...(updates.color !== undefined ? { color: updates.color } : {}),
-          ...(updates.expanded !== undefined ? { expanded: updates.expanded } : {}),
-        }),
-      (current, updated: ApiSubject) =>
+      async () => {
+        const { data, error: err } = await supabase
+          .from("subjects")
+          .update({
+            ...(updates.name !== undefined ? { name: updates.name } : {}),
+            ...(updates.color !== undefined ? { color: updates.color } : {}),
+            ...(updates.expanded !== undefined ? { expanded: updates.expanded } : {}),
+            updatedAt: new Date().toISOString()
+          })
+          .eq("id", subjectId)
+          .select("id,name,color,expanded")
+          .single();
+        if (err) throw err;
+        return data as DbSubject;
+      },
+      (current, updated: DbSubject) =>
         current.map((s) =>
           s.id === subjectId
-            ? mapSubjectFromApi({
+            ? mapSubjectFromDb({
                 ...updated,
-                tasks: updated.tasks as ApiTask[] | undefined ?? s.tasks.map((t) => ({
-                  id: t.id,
-                  subjectId: s.id,
-                  title: t.title,
-                  done: t.completed,
-                  priority: toApiPriority(t.priority),
-                  dueDate: t.dueDate,
-                  pinned: t.pinned,
-                })),
+                tasks:
+                  (updated.tasks as DbTask[] | undefined) ??
+                  s.tasks.map((t) => ({
+                    id: t.id,
+                    subject_id: s.id,
+                    title: t.title,
+                    done: t.completed,
+                    priority: t.priority,
+                    due_date: t.dueDate,
+                    pinned: t.pinned,
+                  })),
               })
             : s,
         ),
     );
-  }, [runOptimistic]);
+  }, [runOptimistic, userKey]);
 
   const deleteSubject = useCallback(async (subjectId: string) => {
+    if (!userKey) {
+      return;
+    }
     setError(null);
     await runOptimistic(
       (prev) => prev.filter((s) => s.id !== subjectId),
-      () => apiDelete(`/subjects/${subjectId}`),
+      async () => {
+        const { error: err } = await supabase.from("subjects").delete().eq("id", subjectId);
+        if (err) throw err;
+      },
     );
-  }, [runOptimistic]);
+  }, [runOptimistic, userKey]);
 
   const addTask = useCallback(async (subjectId: string, title: string, dueDate: string, priority: Priority) => {
+    if (!userKey) {
+      return;
+    }
     setError(null);
     const tempId = `temp-${Date.now()}`;
 
@@ -195,30 +262,47 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
               }
             : s,
         ),
-      async () =>
-        apiPost("/tasks", {
-          title,
-          subjectId,
-          priority: toApiPriority(priority),
-          dueDate: toIsoDate(dueDate),
-          pinned: false,
-          done: false,
-        }),
-      (current, created: ApiTask) =>
+      async () => {
+        const { data, error: err } = await supabase
+          .from("tasks")
+          .insert({
+            id: crypto.randomUUID(),
+            title,
+            subject_id: subjectId,
+            user_id: userKey,
+            priority: toDbPriority(priority),
+            due_date: dueDate,
+            pinned: false,
+            done: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          })
+          .select("id,title,priority,done,pinned,due_date,subject_id")
+          .single();
+        if (err) {
+          console.error('Task insert error:', err);
+          throw err;
+        }
+        return data as DbTask;
+      },
+      (current, created: DbTask) =>
         current.map((s) =>
           s.id === subjectId
             ? {
                 ...s,
                 tasks: s.tasks.map((t) =>
-                  t.id === tempId ? mapTaskFromApi({ ...created, subjectId }) : t,
+                  t.id === tempId ? mapTaskFromDb({ ...created, subject_id: subjectId }) : t,
                 ),
               }
             : s,
       ),
     );
-  }, [runOptimistic]);
+  }, [runOptimistic, userKey]);
 
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
+    if (!userKey) {
+      return;
+    }
     setError(null);
     await runOptimistic(
       (prev) =>
@@ -226,30 +310,45 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
           ...s,
           tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t)),
         })),
-      async () =>
-        apiPatch(`/tasks/${taskId}`, {
-          ...(updates.title !== undefined ? { title: updates.title } : {}),
-          ...(updates.priority !== undefined ? { priority: toApiPriority(updates.priority) } : {}),
-          ...(updates.completed !== undefined ? { done: updates.completed } : {}),
-          ...(updates.dueDate !== undefined ? { dueDate: toIsoDate(updates.dueDate) } : {}),
-          ...(updates.pinned !== undefined ? { pinned: updates.pinned } : {}),
-        }),
-      (current, updated: ApiTask) =>
+      async () => {
+        const { data, error: err } = await supabase
+          .from("tasks")
+          .update({
+            ...(updates.title !== undefined ? { title: updates.title } : {}),
+            ...(updates.priority !== undefined ? { priority: toDbPriority(updates.priority) } : {}),
+            ...(updates.completed !== undefined ? { done: updates.completed } : {}),
+            ...(updates.dueDate !== undefined ? { due_date: updates.dueDate } : {}),
+            ...(updates.pinned !== undefined ? { pinned: updates.pinned } : {}),
+            updatedAt: new Date().toISOString()
+          })
+          .eq("id", taskId)
+          .select("id,title,priority,done,pinned,due_date,subject_id")
+          .single();
+        if (err) throw err;
+        return data as DbTask;
+      },
+      (current, updated: DbTask) =>
         current.map((s) => ({
           ...s,
-          tasks: s.tasks.map((t) => (t.id === taskId ? mapTaskFromApi({ ...updated, subjectId: s.id }) : t)),
+          tasks: s.tasks.map((t) => (t.id === taskId ? mapTaskFromDb({ ...updated, subject_id: s.id }) : t)),
         })),
     );
-  }, [runOptimistic]);
+  }, [runOptimistic, userKey]);
 
   const deleteTask = useCallback(async (taskId: string) => {
+    if (!userKey) {
+      return;
+    }
     setError(null);
     await runOptimistic(
       (prev) =>
         prev.map((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== taskId) })),
-      () => apiDelete(`/tasks/${taskId}`),
+      async () => {
+        const { error: err } = await supabase.from("tasks").delete().eq("id", taskId);
+        if (err) throw err;
+      },
     );
-  }, [runOptimistic]);
+  }, [runOptimistic, userKey]);
 
   return {
     subjects,
