@@ -3,10 +3,4 @@
   "builds": [
     { "src": "next.config.js", "use": "@vercel/next" }
   ],
-  "functions": {
-    "backend/**": {
-      "runtime": "edge",
-      "includeFiles": []
-    }
-  }
 }
