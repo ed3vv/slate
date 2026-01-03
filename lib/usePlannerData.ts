@@ -135,7 +135,20 @@ export function usePlannerData() {
         }),
       (current, updated: ApiSubject) =>
         current.map((s) =>
-          s.id === subjectId ? mapSubjectFromApi({ ...updated, tasks: updated.tasks ?? s.tasks }) : s,
+          s.id === subjectId
+            ? mapSubjectFromApi({
+                ...updated,
+                tasks: updated.tasks as ApiTask[] | undefined ?? s.tasks.map((t) => ({
+                  id: t.id,
+                  subjectId: s.id,
+                  title: t.title,
+                  done: t.completed,
+                  priority: toApiPriority(t.priority),
+                  dueDate: t.dueDate,
+                  pinned: t.pinned,
+                })),
+              })
+            : s,
         ),
     );
   }, [runOptimistic]);
