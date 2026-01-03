@@ -3,12 +3,21 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Home } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 
 export default function SettingsPage() {
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    if (!auth) return;
+    await signOut(auth);
+    router.push("/login");
+  };
+
   return (
     <>
         <main className="p-6">
@@ -25,14 +34,11 @@ export default function SettingsPage() {
                 </Link>
             </Button>
             <Button
-                asChild
-                onClick={() => auth && signOut(auth)}
+                onClick={handleSignOut}
                 variant = "outline"
                 className="h-9 bg-card hover:bg-secondary text-foreground"
             >
-                <Link href='/'>
-                    Sign Out
-                </Link>
+                Sign Out
             </Button>
         </div>
         </main>

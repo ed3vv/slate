@@ -1,24 +1,37 @@
 'use client';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from '@/components/ui/card';
 import { List, Calendar, BarChart, Moon, Sun, Settings } from 'lucide-react';
 import type { TaskStats } from '@/types';
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+
+
 
 
 interface DashboardHeaderProps {
-  activeView: string;
-  setActiveView: (view: string) => void;
   isDark: boolean;
   toggleDark: () => void;
   stats: TaskStats;
   overdueCount: number;
 }
 
-export function DashboardHeader({ activeView, setActiveView, isDark, toggleDark, stats, overdueCount }: DashboardHeaderProps) {
+export function DashboardHeader({ isDark, toggleDark, stats, overdueCount }: DashboardHeaderProps) {
+  const pathname = usePathname();
+
+  const activeView =
+    pathname.startsWith("/timeline") ? "timeline" :
+    pathname.startsWith("/calendar") ? "calendar" :
+    pathname.startsWith("/analytics") ? "analytics" :
+    pathname.startsWith("/subjects") ? "subjects" :
+    "";
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);  
+
+    
   return (
     <Card className="mb-6 bg-card border-0">
       <CardContent className="p-6">
@@ -29,23 +42,31 @@ export function DashboardHeader({ activeView, setActiveView, isDark, toggleDark,
           </div>
 
           <div className="flex items-center gap-4">
-            <Tabs value={activeView} onValueChange={setActiveView}>
+            <Tabs value={activeView}>
               <TabsList className="bg-card border-2">
-                <TabsTrigger value="subjects" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <List className="mr-2 h-4 w-4" />
-                  Subjects
+                <TabsTrigger value="subjects" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Link href="/subjects">
+                    <List className="mr-2 h-4 w-4" />
+                    Subjects
+                  </Link>
                 </TabsTrigger>
-                <TabsTrigger value="timeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Timeline
+                <TabsTrigger value="timeline" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Link href="/timeline">
+                    <List className="mr-2 h-4 w-4" />
+                    Timeline
+                  </Link>
                 </TabsTrigger>
-                <TabsTrigger value="calendar" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Calendar
+                <TabsTrigger value="calendar" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Link href="/calendar">
+                    <List className="mr-2 h-4 w-4" />
+                    Calendar
+                  </Link>
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <BarChart className="mr-2 h-4 w-4" />
-                  Analytics
+                <TabsTrigger value="analytics" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Link href="/analytics">
+                    <List className="mr-2 h-4 w-4" />
+                    Analytics
+                  </Link>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -57,7 +78,11 @@ export function DashboardHeader({ activeView, setActiveView, isDark, toggleDark,
               aria-label="Toggle dark mode"
               className='bg-card text-foreground hover:bg-secondary hover:text-foreground'
             >
-              {isDark ? <Sun className="h-5 w-5 text-foreground" /> : <Moon className="h-5 w-5 text-foreground" />}
+              {mounted ? (
+                isDark ? <Sun className="h-5 w-5 text-foreground" /> : <Moon className="h-5 w-5 text-foreground" />
+              ) : (
+                <div className="h-5 w-5" /> // placeholder to keep layout stable
+              )}
             </Button>
 
             <Button 

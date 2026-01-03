@@ -10,12 +10,12 @@ import type { Task, Priority } from '@/types';
 
 interface TaskItemProps {
   task: Task;
-  subjectId: number;
+  subjectId: string;
   subjectColor: string;
-  onToggle: () => void;
-  onTogglePin: () => void;
-  onUpdate: (updates: Partial<Task>) => void;
-  onDelete: () => void;
+  onToggle: () => void | Promise<void>;
+  onTogglePin: () => void | Promise<void>;
+  onUpdate: (updates: Partial<Task>) => Promise<void> | void;
+  onDelete: () => void | Promise<void>;
   compact?: boolean;
 }
 
@@ -25,8 +25,8 @@ export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin,
   const [editDate, setEditDate] = useState<string>(task.dueDate);
   const [editPriority, setEditPriority] = useState<Priority>(task.priority);
 
-  const handleUpdate = () => {
-    onUpdate({ title: editTitle, dueDate: editDate, priority: editPriority });
+  const handleUpdate = async () => {
+    await onUpdate({ title: editTitle, dueDate: editDate, priority: editPriority });
     setEditing(false);
   };
 

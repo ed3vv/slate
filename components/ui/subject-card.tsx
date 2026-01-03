@@ -11,14 +11,14 @@ import type { Subject, Task, Priority } from '@/types';
 
 interface SubjectCardProps {
   subject: Subject;
-  onToggle: (subjectId: number) => void;
-  onToggleTask: (subjectId: number, taskId: number) => void;
-  onTogglePin: (subjectId: number, taskId: number) => void;
-  onAddTask: (subjectId: number, title: string, dueDate: string, priority: Priority) => void;
-  onUpdateTask: (subjectId: number, taskId: number, updates: Partial<Task>) => void;
-  onUpdateSubject: (subjectId: number, updates: Partial<Subject>) => void;
-  onDeleteTask: (subjectId: number, taskId: number) => void;
-  onDeleteSubject: (subjectId: number) => void;
+  onToggle: (subjectId: string) => Promise<void> | void;
+  onToggleTask: (subjectId: string, taskId: string) => Promise<void> | void;
+  onTogglePin: (subjectId: string, taskId: string) => Promise<void> | void;
+  onAddTask: (subjectId: string, title: string, dueDate: string, priority: Priority) => Promise<void> | void;
+  onUpdateTask: (subjectId: string, taskId: string, updates: Partial<Task>) => Promise<void> | void;
+  onUpdateSubject: (subjectId: string, updates: Partial<Subject>) => Promise<void> | void;
+  onDeleteTask: (subjectId: string, taskId: string) => Promise<void> | void;
+  onDeleteSubject: (subjectId: string) => Promise<void> | void;
   sortTasks: (tasks: Task[]) => Task[];
 }
 
@@ -51,25 +51,26 @@ export function SubjectCard({
     'bg-blue-500'
   ];
 
-  const handleAddTask = () => {
-    if (newTaskTitle.trim()) {
-      onAddTask(subject.id, newTaskTitle, newTaskDate, newTaskPriority);
-      setNewTaskTitle('');
-      setNewTaskDate('');
-      setNewTaskPriority('medium');
-      setShowAddTask(false);
-    }
+  const handleAddTask = async () => {
+    if (!newTaskTitle.trim()) return;
+    const promise = onAddTask(subject.id, newTaskTitle, newTaskDate, newTaskPriority);
+    // Close the UI immediately for snappier feel; still await to surface errors
+    setNewTaskTitle('');
+    setNewTaskDate('');
+    setNewTaskPriority('medium');
+    setShowAddTask(false);
+    await promise;
   };
 
-  const handleUpdateSubject = () => {
+  const handleUpdateSubject = async () => {
     if (editSubjectName.trim()) {
-      onUpdateSubject(subject.id, { name: editSubjectName });
+      await onUpdateSubject(subject.id, { name: editSubjectName });
       setEditingSubject(false);
     }
   };
 
-  const handleColorChange = (color: string) => {
-    onUpdateSubject(subject.id, { color: color });
+  const handleColorChange = async (color: string) => {
+    await onUpdateSubject(subject.id, { color: color });
     setShowColorPicker(false);
   };
 
@@ -81,7 +82,7 @@ export function SubjectCard({
   return (
     <Card className="shadow-md bg-card overflow-hidden flex flex-col">
       <div
-        className="p-4 cursor-pointer hover:opacity-80 transition-colors"
+        className="relative mb-6 p-4 cursor-pointer hover:opacity-80 transition-colors"
         onClick={() => onToggle(subject.id)}
       >
         <div className="flex items-center justify-between mb-2">
@@ -155,13 +156,13 @@ export function SubjectCard({
         <p className="text-xs ml-9 text-muted-foreground">
           {completedCount}/{totalCount} tasks
         </p>
-        <div className="ml-9 mt-2">
-          <Progress value={progress} className="h-1.5 bg-secondary" />
+        <div className="pointer-events-none absolute mt-11 left-1/2 top-1/2 w-[calc(100%-2.25rem)] -translate-x-1/2 -translate-y-1/2">
+          <Progress value={progress} className="h-2 bg-secondary" />
         </div>
       </div>
 
       {subject.expanded && (
-        <CardContent className="px-4 pb-4 space-y-2 flex-1">
+        <CardContent className="mt-[-12px] px-4 pb-4 space-y-2 flex-1">
           {sortedTasks.map(task => (
             <TaskItem
               key={task.id}

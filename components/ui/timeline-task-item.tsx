@@ -10,10 +10,10 @@ import type { TaskWithSubject, Priority, Task } from '@/types';
 
 interface TimelineTaskItemProps {
   task: TaskWithSubject;
-  onToggle: () => void;
-  onTogglePin: () => void;
-  onUpdate: (updates: Partial<Task>) => void;
-  onDelete: () => void;
+  onToggle: () => void | Promise<void>;
+  onTogglePin: () => void | Promise<void>;
+  onUpdate: (updates: Partial<Task>) => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
 }
 
 export function TimelineTaskItem({ task, onToggle, onTogglePin, onUpdate, onDelete }: TimelineTaskItemProps) {
@@ -22,8 +22,8 @@ export function TimelineTaskItem({ task, onToggle, onTogglePin, onUpdate, onDele
   const [editDate, setEditDate] = useState<string>(task.dueDate);
   const [editPriority, setEditPriority] = useState<Priority>(task.priority);
 
-  const handleUpdate = () => {
-    onUpdate({ title: editTitle, dueDate: editDate, priority: editPriority });
+  const handleUpdate = async () => {
+    await onUpdate({ title: editTitle, dueDate: editDate, priority: editPriority });
     setEditing(false);
   };
 

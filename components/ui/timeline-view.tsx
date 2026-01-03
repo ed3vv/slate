@@ -9,10 +9,10 @@ interface TimelineViewProps {
   tasks: TaskWithSubject[];
   sortBy: SortBy;
   setSortBy: (sortBy: SortBy) => void;
-  onToggleTask: (subjectId: number, taskId: number) => void;
-  onTogglePin: (subjectId: number, taskId: number) => void;
-  onUpdateTask: (subjectId: number, taskId: number, updates: Partial<Task>) => void;
-  onDeleteTask: (subjectId: number, taskId: number) => void;
+  onToggleTask: (subjectId: string, taskId: string) => Promise<void> | void;
+  onTogglePin: (subjectId: string, taskId: string) => Promise<void> | void;
+  onUpdateTask: (subjectId: string, taskId: string, updates: Partial<Task>) => Promise<void> | void;
+  onDeleteTask: (subjectId: string, taskId: string) => Promise<void> | void;
   sortTasks: (tasks: Task[]) => Task[];
 }
 

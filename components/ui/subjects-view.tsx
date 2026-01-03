@@ -11,15 +11,15 @@ interface SubjectsViewProps {
   subjects: Subject[];
   sortBy: SortBy;
   setSortBy: (sortBy: SortBy) => void;
-  onToggle: (subjectId: number) => void;
-  onToggleTask: (subjectId: number, taskId: number) => void;
-  onTogglePin: (subjectId: number, taskId: number) => void;
-  onAddTask: (subjectId: number, title: string, dueDate: string, priority: Priority) => void;
-  onUpdateTask: (subjectId: number, taskId: number, updates: Partial<Task>) => void;
-  onUpdateSubject: (subjectId: number, updates: Partial<Subject>) => void;
-  onAddSubject: (subject: Subject) => void;
-  onDeleteTask: (subjectId: number, taskId: number) => void;
-  onDeleteSubject: (subjectId: number) => void;
+  onToggle: (subjectId: string) => Promise<void> | void;
+  onToggleTask: (subjectId: string, taskId: string) => Promise<void> | void;
+  onTogglePin: (subjectId: string, taskId: string) => Promise<void> | void;
+  onAddTask: (subjectId: string, title: string, dueDate: string, priority: Priority) => Promise<void> | void;
+  onUpdateTask: (subjectId: string, taskId: string, updates: Partial<Task>) => Promise<void> | void;
+  onUpdateSubject: (subjectId: string, updates: Partial<Subject>) => Promise<void> | void;
+  onAddSubject: (subjectName: string, color: string) => Promise<void> | void;
+  onDeleteTask: (subjectId: string, taskId: string) => Promise<void> | void;
+  onDeleteSubject: (subjectId: string) => Promise<void> | void;
   sortTasks: (tasks: Task[]) => Task[];
 }
 
@@ -43,28 +43,23 @@ export function SubjectsView({
   const [columns, setColumns] = useState<number>(3);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const addSubject = () => {
-    if (newSubjectName.trim()) {
-      const colors = [
-        'bg-[hsl(var(--subject-violet))]',
-        'bg-[hsl(var(--subject-amber))]',
-        'bg-[hsl(var(--subject-rose))]',
-        'bg-[hsl(var(--subject-sky))]',
-        'bg-[hsl(var(--subject-emerald))]',
-        'bg-[hsl(var(--subject-indigo))]'
-      ];
-      const randomColor = colors[Math.floor(Math.random() * colors.length)];
-      onAddSubject({
-        id: Date.now(),
-        name: newSubjectName,
-        color: randomColor,
-        expanded: false,
-        tasks: []
-      });
+  const addSubject = async () => {
+    if (!newSubjectName.trim()) return;
+    const colors = [
+      'bg-[hsl(var(--subject-violet))]',
+      'bg-[hsl(var(--subject-amber))]',
+      'bg-[hsl(var(--subject-rose))]',
+      'bg-[hsl(var(--subject-sky))]',
+      'bg-[hsl(var(--subject-emerald))]',
+      'bg-[hsl(var(--subject-indigo))]'
+    ];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
-      setNewSubjectName('');
-      setShowAddSubject(false);
-    }
+    // close/reset immediately for snappier UX; still await to surface errors
+    setShowAddSubject(false);
+    const promise = onAddSubject(newSubjectName, randomColor);
+    setNewSubjectName('');
+    await promise;
   };
 
   useLayoutEffect(() => {

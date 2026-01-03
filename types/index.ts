@@ -1,7 +1,7 @@
 export type Priority = 'low' | 'medium' | 'high';
 
 export interface Task {
-  id: number;
+  id: string;
   title: string;
   dueDate: string;
   completed: boolean;
@@ -10,7 +10,7 @@ export interface Task {
 }
 
 export interface Subject {
-  id: number;
+  id: string;
   name: string;
   color: string;
   expanded: boolean;
@@ -20,7 +20,7 @@ export interface Subject {
 export interface TaskWithSubject extends Task {
   subjectName: string;
   subjectColor: string;
-  subjectId: number;
+  subjectId: string;
 }
 
 export interface Event {

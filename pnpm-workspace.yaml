@@ -1,0 +1,6 @@
+ignoredBuiltDependencies:
+  - protobufjs
+  - unrs-resolver
+
+onlyBuiltDependencies:
+  - sharp
