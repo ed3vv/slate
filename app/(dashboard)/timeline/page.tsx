@@ -2,12 +2,15 @@
 
 import { useState } from "react"
 import { usePlannerData } from "@/lib/usePlannerData"
+import { useAuth } from "@/lib/hooks"
 import type { TaskWithSubject, Task, SortBy } from '@/types'
 import { TimelineView } from '@/components/ui/timeline-view'
 
 export default function TimelineSection() {
 
-    const { subjects, loading, error, updateTask, deleteTask } = usePlannerData()
+    const { user, loading: authLoading } = useAuth(true)
+
+    const { subjects, loading, error, updateTask, deleteTask } = usePlannerData(!authLoading && !!user)
 
     const getAllTasks = (): TaskWithSubject[] => {
         return subjects.flatMap(s => s.tasks.map(t => ({
@@ -50,7 +53,7 @@ export default function TimelineSection() {
         return [...tasks].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
     };
     
-    if (loading) {
+    if (authLoading || loading) {
         return <div className="p-6 text-foreground">Loading timeline...</div>
     }
 

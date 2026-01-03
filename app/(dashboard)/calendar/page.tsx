@@ -4,12 +4,15 @@ import { CalendarView } from '@/components/ui/calendar-view'
 import type { TaskWithSubject, Event } from '@/types'
 import { useLocalStorage } from '@/lib/hooks';
 import { usePlannerData } from '@/lib/usePlannerData';
+import { useAuth } from '@/lib/hooks'
 
 
 export default function CalendarSection() {
 
 
-    const { subjects, loading, error } = usePlannerData()
+    const { user, loading: authLoading } = useAuth(true)
+
+    const { subjects, loading, error } = usePlannerData(!authLoading && !!user)
 
     const getAllTasks = (): TaskWithSubject[] => {
         return subjects.flatMap(s => s.tasks.map(t => ({
@@ -30,7 +33,7 @@ export default function CalendarSection() {
         setEvents(events.filter(e => e.id !== eventId));
     };
 
-    if (loading) {
+    if (authLoading || loading) {
         return <div className="p-6 text-foreground">Loading calendar...</div>
     }
 

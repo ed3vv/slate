@@ -4,13 +4,16 @@ import { useState } from 'react'
 import { SubjectsView } from '@/components/ui/subjects-view'
 import { usePlannerData } from '@/lib/usePlannerData'
 import { DateUtils } from '@/lib/dateUtils'
+import { useAuth } from '@/lib/hooks'
 import type { Subject, SortBy, Priority, Task } from '@/types'
 
 export default function SubjectsSection() {
 
     const [sortBy, setSortBy] = useState<SortBy>("dueDate")
 
-    const { subjects, loading, error, addSubject, updateSubject, deleteSubject, addTask, updateTask, deleteTask } = usePlannerData()
+    const { user, loading: authLoading } = useAuth(true)
+
+    const { subjects, loading, error, addSubject, updateSubject, deleteSubject, addTask, updateTask, deleteTask } = usePlannerData(!authLoading && !!user)
 
     const toggleSubject = async (subjectId: string) => {
         const subject = subjects.find(s => s.id === subjectId)
@@ -65,7 +68,7 @@ export default function SubjectsSection() {
         return [...tasks].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
     };
   
-    if (loading) {
+    if (authLoading || loading) {
         return <div className="p-6 text-foreground">Loading your planner...</div>
     }
 
