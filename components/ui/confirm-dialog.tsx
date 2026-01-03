@@ -21,7 +21,7 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({ show, title, message, onConfirm, onCancel }: ConfirmDialogProps) {
   return (
     <AlertDialog open={show} onOpenChange={onCancel}>
-      <AlertDialogContent className="bg-white ">
+      <AlertDialogContent className="bg-primary ">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-foreground">{title}</AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground">{message}</AlertDialogDescription>

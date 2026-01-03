@@ -10,7 +10,7 @@ export default function TimelineSection() {
 
     const { user, loading: authLoading } = useAuth(true)
 
-    const { subjects, loading, error, updateTask, deleteTask } = usePlannerData(!authLoading && !!user)
+    const { subjects, loading, error, updateTask, deleteTask } = usePlannerData(!authLoading && !!user, user?.uid)
 
     const getAllTasks = (): TaskWithSubject[] => {
         return subjects.flatMap(s => s.tasks.map(t => ({

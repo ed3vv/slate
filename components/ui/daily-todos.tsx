@@ -12,17 +12,19 @@ interface Todo {
 }
 
 export function DailyTodos() {
-  const [todos, setTodos] = useState<Todo[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('dailyTodos');
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
+  const [todos, setTodos] = useState<Todo[]>([]);
 
   const [newTodo, setNewTodo] = useState<string>('');
 
+  // Hydrate from localStorage after mount to avoid SSR/client mismatch
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem('dailyTodos');
+    setTodos(saved ? JSON.parse(saved) : []);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     localStorage.setItem('dailyTodos', JSON.stringify(todos));
   }, [todos]);
 

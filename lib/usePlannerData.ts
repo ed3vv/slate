@@ -52,7 +52,7 @@ const mapSubjectFromApi = (subject: ApiSubject): Subject => ({
   tasks: (subject.tasks ?? []).map(mapTaskFromApi),
 });
 
-export function usePlannerData(enabled: boolean = true) {
+export function usePlannerData(enabled: boolean = true, userKey?: string) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,13 +97,19 @@ export function usePlannerData(enabled: boolean = true) {
     }
   }, []);
 
+  // Clear data when disabled or user changes away
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !userKey) {
+      setSubjects([]);
+      setError(null);
       setLoading(false);
-      return;
     }
+  }, [enabled, userKey]);
+
+  useEffect(() => {
+    if (!enabled || !userKey) return;
     refresh();
-  }, [enabled, refresh]);
+  }, [enabled, userKey, refresh]);
 
   const addSubject = useCallback(async (name: string, color: string) => {
     setError(null);
@@ -257,6 +263,7 @@ export function usePlannerData(enabled: boolean = true) {
     updateTask,
     deleteTask,
     enabled,
+    userKey,
   };
 }
 
