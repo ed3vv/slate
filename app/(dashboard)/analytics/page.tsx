@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks";
 import { useFocusSessions } from "@/lib/useFocusSessions";
 import { AnalyticsView } from "@/components/ui/analytics-view"
@@ -9,9 +9,37 @@ import { PartyManagement } from "@/components/ui/party-management";
 
 export default function AnalyticsSection() {
     const { user, loading: authLoading } = useAuth(true);
-    const { sessions, deleteSession } = useFocusSessions(!authLoading && !!user, user?.id);
+    const { sessions, deleteSession, refresh } = useFocusSessions(!authLoading && !!user, user?.id);
     const [sessionToDelete, setSessionToDelete] = useState<number | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // Refresh sessions when the page becomes visible or when a session is added
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden && user?.id) {
+                refresh();
+            }
+        };
+
+        const handleSessionAdded = () => {
+            if (user?.id) {
+                refresh();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focusSessionAdded', handleSessionAdded);
+
+        // Also refresh on mount
+        if (user?.id) {
+            refresh();
+        }
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focusSessionAdded', handleSessionAdded);
+        };
+    }, [user?.id, refresh]);
 
     const handleDeleteRequest = (sessionTimestamp: number) => {
         setSessionToDelete(sessionTimestamp);

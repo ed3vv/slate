@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Home, Moon, Sun } from "lucide-react";
+import { ArrowLeft, Moon, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useDarkMode, useAuth } from "@/lib/hooks";
+import { useDarkMode } from "@/lib/hooks";
+import { useAuthWithProfile } from "@/lib/useAuthWithProfile";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/lib/supabaseClient";
@@ -14,23 +15,9 @@ export default function SettingsPage() {
   const router = useRouter();
   const [isDark, setIsDark] = useDarkMode();
   const [mounted, setMounted] = useState(false);
-  const { user } = useAuth(false);
-  const [username, setUsername] = useState<string | null>(null);
+  const { data: userProfile } = useAuthWithProfile(true);
 
   useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    const fetchUsername = async () => {
-      if (!user?.id) return;
-      const { data } = await supabase
-        .from("user_profiles")
-        .select("username")
-        .eq("user_id", user.id)
-        .single();
-      setUsername(data?.username || null);
-    };
-    fetchUsername();
-  }, [user]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -38,29 +25,33 @@ export default function SettingsPage() {
   };
 
   return (
-    <>
-        <main className="p-6">
-        <h1 className="text-2xl font-semibold mb-6 text-foreground">Settings</h1>
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <main className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-foreground">Settings</h1>
 
         <div className="space-y-6">
-          {/* User Profile */}
-          {user && (
-            <div className="p-4 bg-card rounded-lg border">
-              <h2 className="text-lg font-medium text-foreground mb-3">Profile</h2>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Email: </span>
-                  <span className="text-foreground">{user.email}</span>
-                </div>
-                {username && (
-                  <div>
-                    <span className="text-muted-foreground">Username: </span>
-                    <span className="text-foreground">{username}</span>
-                  </div>
+          {/* User Profile - Always render to prevent layout shift */}
+          <div className="p-4 bg-card rounded-lg border">
+            <h2 className="text-lg font-medium text-foreground mb-3">Profile</h2>
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Email: </span>
+                {userProfile?.user.email ? (
+                  <span className="text-foreground">{userProfile.user.email}</span>
+                ) : (
+                  <span className="inline-block h-4 w-48 bg-muted animate-pulse rounded"></span>
+                )}
+              </div>
+              <div>
+                <span className="text-muted-foreground">Username: </span>
+                {userProfile?.username ? (
+                  <span className="text-foreground">{userProfile.username}</span>
+                ) : (
+                  <span className="inline-block h-4 w-32 bg-muted animate-pulse rounded"></span>
                 )}
               </div>
             </div>
-          )}
+          </div>
 
           <div className="flex flex-nowrap gap-4">
             <div className="flex flex-1 items-center justify-between p-4 bg-card rounded-lg border">
@@ -92,9 +83,10 @@ export default function SettingsPage() {
           
 
           <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/login">
-                <Home className="h-5 w-5" aria-hidden="true" />
+            <Button asChild variant="outline" className="bg-card hover:bg-secondary text-foreground">
+              <Link href="/subjects">
+                <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
+                Back to Dashboard
               </Link>
             </Button>
             <Button
@@ -106,9 +98,7 @@ export default function SettingsPage() {
             </Button>
           </div>
         </div>
-        </main>
-
-    </>
-
+      </main>
+    </div>
   );
 }

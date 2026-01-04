@@ -106,7 +106,7 @@ export function AnalyticsView({ focusSessions, onDeleteSession }: AnalyticsViewP
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+    const minutes = Math.round((seconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
   };
 

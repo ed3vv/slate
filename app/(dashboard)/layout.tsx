@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/hooks";
 import { useFocusSessions } from "@/lib/useFocusSessions";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { DateUtils } from "@/lib/dateUtils";
+import { useTaskStats } from "@/lib/useTaskStats";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { FocusTimer } from "@/components/ui/focus-timer";
 import { DailyTodos } from "@/components/ui/daily-todos";
@@ -16,6 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { addSession } = useFocusSessions(!authLoading && !!user, user?.id);
   useUserProfile(user?.id, user?.email);
   const pathname = usePathname();
+  const { stats, overdueCount } = useTaskStats(!authLoading && !!user, user?.id);
 
   // Save current route to localStorage whenever it changes
   useEffect(() => {
@@ -46,8 +48,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="mb-60 min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-8xl mx-auto">
         <DashboardHeader
-          stats={{ completed: 0, total: 0, pending: 0 }}
-          overdueCount={0}
+          stats={stats}
+          overdueCount={overdueCount}
         />
 
         <div className="flex flex-col gap-6 custom:flex-row">

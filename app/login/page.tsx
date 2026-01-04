@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks';
 import { supabase } from '@/lib/supabaseClient';
+import { LoginCharacters } from '@/components/ui/login-characters';
 
 export default function SignIn() {
   const { loading } = useAuth(false);
@@ -12,6 +13,23 @@ export default function SignIn() {
   const [username, setUsername] = useState('');
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [rememberMe, setRememberMe] = useState(true);
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | 'username' | null>(null);
+  const [isSurprised, setIsSurprised] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  const handleRememberMeChange = (checked: boolean) => {
+    setRememberMe(checked);
+    setIsSurprised(true);
+    setTimeout(() => setIsSurprised(false), 1000);
+  };
 
   const handleEmailAuth = async () => {
     setError('');
@@ -74,77 +92,103 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="max-w-md w-full space-y-8 p-8 bg-card rounded-lg shadow border">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-foreground">Slate Planner</h1>
-          <p className="mt-2 text-muted-foreground">
-            {mode === 'signin' ? 'Sign in to sync your data' : 'Create an account to get started'}
+    <div className="min-h-screen flex bg-background">
+      {/* Left side - Animated Characters */}
+      <div className="hidden lg:flex lg:w-1/2 bg-primary/10 items-center justify-center p-12">
+        <div className="max-w-md text-center space-y-6">
+          <LoginCharacters
+            focusedField={focusedField}
+            isSurprised={isSurprised}
+            mousePosition={mousePosition}
+          />
+          <h2 className="text-3xl font-bold text-foreground">Welcome to Slate</h2>
+          <p className="text-lg text-muted-foreground">
+            Your all-in-one study planner. Stay organized, track your progress, and lock in with friends.
           </p>
         </div>
+      </div>
 
-        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-        {notice && <p className="text-green-500 text-sm text-center">{notice}</p>}
+      {/* Right side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-foreground">
+              {mode === 'signin' ? 'Welcome Back' : 'Get Started'}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              {mode === 'signin' ? 'Sign in to your account' : 'Create an account to get started'}
+            </p>
+          </div>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm text-foreground">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-foreground">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground"
-              placeholder="••••••••"
-            />
-          </div>
-          {mode === 'signup' && (
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          {notice && <p className="text-green-500 text-sm text-center">{notice}</p>}
+
+          <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm text-foreground">Username</label>
+              <label className="text-sm text-foreground">Email</label>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
                 className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground"
-                placeholder="username"
+                placeholder="you@example.com"
               />
             </div>
-          )}
-          {mode === 'signin' && (
-            <div className="flex items-center space-x-2">
+            <div className="space-y-2">
+              <label className="text-sm text-foreground">Password</label>
               <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
+                className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground"
+                placeholder="••••••••"
               />
-              <label htmlFor="rememberMe" className="text-sm text-foreground cursor-pointer">
-                Remember me on this device
-              </label>
             </div>
-          )}
-          <button
-            onClick={handleEmailAuth}
-            className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition font-medium"
-          >
-            {mode === 'signin' ? 'Sign In' : 'Create Account'}
-          </button>
-          <button
-            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-            className="w-full text-sm text-muted-foreground hover:text-foreground"
-          >
-            {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-          </button>
+            {mode === 'signup' && (
+              <div className="space-y-2">
+                <label className="text-sm text-foreground">Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  onFocus={() => setFocusedField('username')}
+                  onBlur={() => setFocusedField(null)}
+                  className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground"
+                  placeholder="username"
+                />
+              </div>
+            )}
+            {mode === 'signin' && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => handleRememberMeChange(e.target.checked)}
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <label htmlFor="rememberMe" className="text-sm text-foreground cursor-pointer">
+                  Remember me on this device
+                </label>
+              </div>
+            )}
+            <button
+              onClick={handleEmailAuth}
+              className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition font-medium"
+            >
+              {mode === 'signin' ? 'Sign In' : 'Create Account'}
+            </button>
+            <button
+              onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+              className="w-full text-sm text-muted-foreground hover:text-foreground"
+            >
+              {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

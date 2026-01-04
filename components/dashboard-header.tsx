@@ -6,6 +6,7 @@ import { List, Calendar, BarChart, Settings, Clock } from 'lucide-react';
 import type { TaskStats } from '@/types';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from 'react';
 
 
 
@@ -17,6 +18,11 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ stats, overdueCount }: DashboardHeaderProps) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const activeView =
     pathname.startsWith("/timeline") ? "timeline" :
@@ -35,34 +41,36 @@ export function DashboardHeader({ stats, overdueCount }: DashboardHeaderProps) {
           </div>
 
           <div className="flex items-center gap-4">
-            <Tabs value={activeView} suppressHydrationWarning>
-              <TabsList className="bg-card border-2" suppressHydrationWarning>
-                <TabsTrigger value="subjects" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Link href="/subjects">
-                    <List className="mr-2 h-4 w-4" />
-                    Subjects
-                  </Link>
-                </TabsTrigger>
-                <TabsTrigger value="timeline" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Link href="/timeline">
-                    <Clock className="mr-2 h-4 w-4" />
-                    Timeline
-                  </Link>
-                </TabsTrigger>
-                <TabsTrigger value="calendar" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Link href="/calendar">
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Calendar
-                  </Link>
-                </TabsTrigger>
-                <TabsTrigger value="analytics" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <Link href="/analytics">
-                    <BarChart className="mr-2 h-4 w-4" />
-                    Analytics
-                  </Link>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            {mounted && (
+              <Tabs value={activeView}>
+                <TabsList className="bg-card border-2" suppressHydrationWarning>
+                  <TabsTrigger value="subjects" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Link href="/subjects">
+                      <List className="mr-2 h-4 w-4" />
+                      Subjects
+                    </Link>
+                  </TabsTrigger>
+                  <TabsTrigger value="timeline" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Link href="/timeline">
+                      <Clock className="mr-2 h-4 w-4" />
+                      Timeline
+                    </Link>
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Link href="/calendar">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Calendar
+                    </Link>
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Link href="/analytics">
+                      <BarChart className="mr-2 h-4 w-4" />
+                      Analytics
+                    </Link>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
 
             <Button 
               asChild variant="outline" 

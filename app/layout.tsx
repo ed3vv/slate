@@ -5,6 +5,11 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Slate',
   description: 'Study Planner - Stay organized and lock in',
+  icons: {
+    apple: [
+      { url: '/api/placeholder-icon', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 const themeScript = `

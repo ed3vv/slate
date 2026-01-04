@@ -50,6 +50,12 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const emitTaskChanged = () => {
+    if (typeof window !== "undefined") {
+      // Defer to avoid cross-render updates in other components
+      setTimeout(() => window.dispatchEvent(new Event("taskChanged")), 0);
+    }
+  };
 
   // Small helper to optimistically update state, then roll back on failure.
   const runOptimistic = useCallback(
@@ -286,16 +292,19 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
         return data as DbTask;
       },
       (current, created: DbTask) =>
-        current.map((s) =>
-          s.id === subjectId
-            ? {
-                ...s,
-                tasks: s.tasks.map((t) =>
-                  t.id === tempId ? mapTaskFromDb({ ...created, subject_id: subjectId }) : t,
-                ),
-              }
-            : s,
-      ),
+        {
+          emitTaskChanged();
+          return current.map((s) =>
+            s.id === subjectId
+              ? {
+                  ...s,
+                  tasks: s.tasks.map((t) =>
+                    t.id === tempId ? mapTaskFromDb({ ...created, subject_id: subjectId }) : t,
+                  ),
+                }
+              : s,
+          );
+        },
     );
   }, [runOptimistic, userKey]);
 
@@ -328,10 +337,20 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
         return data as DbTask;
       },
       (current, updated: DbTask) =>
-        current.map((s) => ({
-          ...s,
-          tasks: s.tasks.map((t) => (t.id === taskId ? mapTaskFromDb({ ...updated, subject_id: s.id }) : t)),
-        })),
+        {
+          const hasNonPriorityUpdates =
+            updates.title !== undefined ||
+            updates.completed !== undefined ||
+            updates.dueDate !== undefined ||
+            updates.pinned !== undefined;
+          if (hasNonPriorityUpdates) {
+            emitTaskChanged();
+          }
+          return current.map((s) => ({
+            ...s,
+            tasks: s.tasks.map((t) => (t.id === taskId ? mapTaskFromDb({ ...updated, subject_id: s.id }) : t)),
+          }));
+        },
     );
   }, [runOptimistic, userKey]);
 
@@ -346,6 +365,10 @@ export function usePlannerData(enabled: boolean = true, userKey?: string) {
       async () => {
         const { error: err } = await supabase.from("tasks").delete().eq("id", taskId);
         if (err) throw err;
+      },
+      (current) => {
+        emitTaskChanged();
+        return current;
       },
     );
   }, [runOptimistic, userKey]);

@@ -77,6 +77,8 @@ export function useFocusSessions(enabled: boolean = true, userKey?: string) {
         throw err;
       }
       console.log('[useFocusSessions] Session added successfully');
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('focusSessionAdded', { detail: { date, duration, timestamp } }));
     } catch (e: any) {
       setError(e?.message || JSON.stringify(e));
       setSessions(prev => prev.filter(s => s.timestamp !== timestamp));
@@ -100,5 +102,5 @@ export function useFocusSessions(enabled: boolean = true, userKey?: string) {
     }
   }, [userKey, refresh]);
 
-  return { sessions, loading, error, addSession, deleteSession };
+  return { sessions, loading, error, addSession, deleteSession, refresh };
 }

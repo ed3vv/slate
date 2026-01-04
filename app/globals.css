@@ -199,3 +199,29 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--scrollbar-thumb-hover));
 }
+
+/* Nodding animation - only affects Y axis, preserves X position */
+@keyframes nod {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  33% {
+    transform: translateY(0.25rem);
+  }
+  66% {
+    transform: translateY(0);
+  }
+}
+
+/* Head shake animation - only affects X axis, preserves Y position */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-0.5rem);
+  }
+  75% {
+    transform: translateX(0.5rem);
+  }
+}

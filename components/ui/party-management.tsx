@@ -359,7 +359,9 @@ export function PartyManagement() {
                                 </div>
                                 <div className="h-3 bg-secondary rounded-full overflow-hidden">
                                   <div
-                                    className="h-full bg-primary transition-all duration-300"
+                                    className={`h-full transition-all duration-300 ${
+                                      isCurrentUser ? 'bg-primary' : 'bg-primary/60'
+                                    }`}
                                     style={{ width: `${percentage}%` }}
                                   />
                                 </div>
