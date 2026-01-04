@@ -2,23 +2,20 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from '@/components/ui/card';
-import { List, Calendar, BarChart, Moon, Sun, Settings } from 'lucide-react';
+import { List, Calendar, BarChart, Settings, Clock } from 'lucide-react';
 import type { TaskStats } from '@/types';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 
 
 
 
 interface DashboardHeaderProps {
-  isDark: boolean;
-  toggleDark: () => void;
   stats: TaskStats;
   overdueCount: number;
 }
 
-export function DashboardHeader({ isDark, toggleDark, stats, overdueCount }: DashboardHeaderProps) {
+export function DashboardHeader({ stats, overdueCount }: DashboardHeaderProps) {
   const pathname = usePathname();
 
   const activeView =
@@ -28,10 +25,6 @@ export function DashboardHeader({ isDark, toggleDark, stats, overdueCount }: Das
     pathname.startsWith("/subjects") ? "subjects" :
     "";
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);  
-
-    
   return (
     <Card className="mb-6 bg-card border-0">
       <CardContent className="p-6">
@@ -42,8 +35,8 @@ export function DashboardHeader({ isDark, toggleDark, stats, overdueCount }: Das
           </div>
 
           <div className="flex items-center gap-4">
-            <Tabs value={activeView}>
-              <TabsList className="bg-card border-2">
+            <Tabs value={activeView} suppressHydrationWarning>
+              <TabsList className="bg-card border-2" suppressHydrationWarning>
                 <TabsTrigger value="subjects" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Link href="/subjects">
                     <List className="mr-2 h-4 w-4" />
@@ -52,38 +45,24 @@ export function DashboardHeader({ isDark, toggleDark, stats, overdueCount }: Das
                 </TabsTrigger>
                 <TabsTrigger value="timeline" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Link href="/timeline">
-                    <List className="mr-2 h-4 w-4" />
+                    <Clock className="mr-2 h-4 w-4" />
                     Timeline
                   </Link>
                 </TabsTrigger>
                 <TabsTrigger value="calendar" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Link href="/calendar">
-                    <List className="mr-2 h-4 w-4" />
+                    <Calendar className="mr-2 h-4 w-4" />
                     Calendar
                   </Link>
                 </TabsTrigger>
                 <TabsTrigger value="analytics" asChild className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Link href="/analytics">
-                    <List className="mr-2 h-4 w-4" />
+                    <BarChart className="mr-2 h-4 w-4" />
                     Analytics
                   </Link>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleDark}
-              aria-label="Toggle dark mode"
-              className='bg-card text-foreground hover:bg-secondary hover:text-foreground'
-            >
-              {mounted ? (
-                isDark ? <Sun className="h-5 w-5 text-foreground" /> : <Moon className="h-5 w-5 text-foreground" />
-              ) : (
-                <div className="h-5 w-5" /> // placeholder to keep layout stable
-              )}
-            </Button>
 
             <Button 
               asChild variant="outline" 

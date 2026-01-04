@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -9,7 +9,9 @@ export default function SignIn() {
   const [notice, setNotice] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handleEmailAuth = async () => {
     setError('');
@@ -18,13 +20,44 @@ export default function SignIn() {
       setError('Please enter both email and password.');
       return;
     }
+    if (mode === 'signup' && !username.trim()) {
+      setError('Please enter a username.');
+      return;
+    }
     try {
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+
+        // Note: Supabase automatically persists sessions in localStorage by default
+        // If "remember me" is unchecked, we'll sign out when the tab/window closes
+        if (!rememberMe) {
+          // Store a flag to sign out on tab close
+          sessionStorage.setItem('autoSignOut', 'true');
+        } else {
+          sessionStorage.removeItem('autoSignOut');
+        }
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        // Check if username is already taken
+        const { data: existingUser } = await supabase
+          .from('user_profiles')
+          .select('username')
+          .eq('username', username.trim().toLowerCase())
+          .maybeSingle();
+
+        if (existingUser) {
+          setError('Username is already taken. Please choose another.');
+          return;
+        }
+
+        const { error, data } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
+
+        // Store username temporarily to set after email confirmation
+        if (data.user) {
+          sessionStorage.setItem('pendingUsername', username.trim());
+        }
+
         setNotice('Check your inbox to confirm your email, then sign in.');
       }
     } catch (err: any) {
@@ -74,6 +107,32 @@ export default function SignIn() {
               placeholder="••••••••"
             />
           </div>
+          {mode === 'signup' && (
+            <div className="space-y-2">
+              <label className="text-sm text-foreground">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground"
+                placeholder="username"
+              />
+            </div>
+          )}
+          {mode === 'signin' && (
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <label htmlFor="rememberMe" className="text-sm text-foreground cursor-pointer">
+                Remember me on this device
+              </label>
+            </div>
+          )}
           <button
             onClick={handleEmailAuth}
             className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition font-medium"

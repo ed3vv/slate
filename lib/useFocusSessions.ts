@@ -32,6 +32,8 @@ export function useFocusSessions(enabled: boolean = true, userKey?: string) {
         .order("timestamp", { ascending: false });
 
       if (err) throw err;
+      console.log('[useFocusSessions] Fetched sessions:', data?.length || 0, 'sessions for user:', userKey);
+      console.log('[useFocusSessions] Raw data:', data);
       setSessions((data ?? []).map(mapSessionFromDb));
     } catch (e: any) {
       setError(e?.message || JSON.stringify(e));
@@ -56,6 +58,8 @@ export function useFocusSessions(enabled: boolean = true, userKey?: string) {
     const newSession: FocusSession = { date, duration, timestamp };
     setSessions(prev => [newSession, ...prev]);
 
+    console.log('[useFocusSessions] Adding session:', { date, duration, timestamp, userKey });
+
     try {
       const { error: err } = await supabase
         .from("focus_sessions")
@@ -68,7 +72,11 @@ export function useFocusSessions(enabled: boolean = true, userKey?: string) {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
-      if (err) throw err;
+      if (err) {
+        console.error('[useFocusSessions] Insert error:', err);
+        throw err;
+      }
+      console.log('[useFocusSessions] Session added successfully');
     } catch (e: any) {
       setError(e?.message || JSON.stringify(e));
       setSessions(prev => prev.filter(s => s.timestamp !== timestamp));

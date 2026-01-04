@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/hooks";
 import { useFocusSessions } from "@/lib/useFocusSessions";
 import { AnalyticsView } from "@/components/ui/analytics-view"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PartyManagement } from "@/components/ui/party-management";
 
 export default function AnalyticsSection() {
     const { user, loading: authLoading } = useAuth(true);
@@ -27,10 +28,13 @@ export default function AnalyticsSection() {
 
     return (
         <>
-            <AnalyticsView
-                focusSessions={sessions}
-                onDeleteSession={handleDeleteRequest}
-            />
+            <div className="space-y-6">
+                <PartyManagement />
+                <AnalyticsView
+                    focusSessions={sessions}
+                    onDeleteSession={handleDeleteRequest}
+                />
+            </div>
             <ConfirmDialog
                 show={showDeleteConfirm}
                 title="Delete Session?"

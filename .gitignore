@@ -10,6 +10,7 @@ build
 
 #secrets
 /secrets
+/supabase
 
 # Logs
 logs

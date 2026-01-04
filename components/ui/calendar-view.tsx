@@ -117,7 +117,7 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }: Calen
                 type="time"
                 value={newEventTime}
                 onChange={(e) => setNewEventTime(e.target.value)}
-                className="bg-input"
+                className="flex-1 bg-input"
               />
             </div>
             <div className="flex gap-2">

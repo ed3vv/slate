@@ -16,6 +16,8 @@ export function AnalyticsView({ focusSessions, onDeleteSession }: AnalyticsViewP
   const chartInstance = useRef<Chart | null>(null);
   const [timeframe, setTimeframe] = useState<'week' | 'month'>('week');
 
+  console.log('[AnalyticsView] Received focusSessions:', focusSessions.length, 'sessions');
+
   useEffect(() => {
     if (chartRef.current) {
       if (chartInstance.current) {

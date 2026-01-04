@@ -1,16 +1,40 @@
 "use client";
 
-import { useDarkMode, useAuth } from "@/lib/hooks";
+import { useEffect } from "react";
+import { useAuth } from "@/lib/hooks";
 import { useFocusSessions } from "@/lib/useFocusSessions";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { DateUtils } from "@/lib/dateUtils";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { FocusTimer } from "@/components/ui/focus-timer";
 import { DailyTodos } from "@/components/ui/daily-todos";
+import { supabase } from "@/lib/supabaseClient";
+import { usePathname } from "next/navigation";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [isDark, setIsDark] = useDarkMode();
   const { user, loading: authLoading } = useAuth(false);
   const { addSession } = useFocusSessions(!authLoading && !!user, user?.id);
+  useUserProfile(user?.id, user?.email);
+  const pathname = usePathname();
+
+  // Save current route to localStorage whenever it changes
+  useEffect(() => {
+    if (pathname) {
+      localStorage.setItem('lastVisitedRoute', pathname);
+    }
+  }, [pathname]);
+
+  // Handle auto sign-out when "remember me" was unchecked
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (sessionStorage.getItem('autoSignOut') === 'true') {
+        supabase.auth.signOut();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   const handleSessionComplete = (duration: number) => {
     if (duration > 0) {
@@ -22,8 +46,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="mb-60 min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-8xl mx-auto">
         <DashboardHeader
-          isDark={isDark}
-          toggleDark={() => setIsDark(!isDark)}
           stats={{ completed: 0, total: 0, pending: 0 }}
           overdueCount={0}
         />
