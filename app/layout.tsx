@@ -7,6 +7,15 @@ export const metadata: Metadata = {
   description: 'Study Planner - Stay organized and lock in',
 };
 
+const themeScript = `
+  try {
+    const stored = localStorage.getItem('darkMode');
+    const prefers = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = stored ? JSON.parse(stored) : prefers;
+    if (isDark) document.documentElement.classList.add('dark');
+  } catch (e) {}
+`;
+
 export default function RootLayout({
   children,
 }: {
@@ -15,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {children}
         <Analytics />
       </body>
