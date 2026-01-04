@@ -7,6 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { CheckSquare, Square, Edit, Trash2 } from 'lucide-react';
 import { DateUtils } from '@/lib/dateUtils';
 import type { Task, Priority } from '@/types';
+import { cn } from '@/lib/utils';
+
+import { format } from "date-fns"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
 
 interface TaskItemProps {
   task: Task;
@@ -20,15 +26,44 @@ interface TaskItemProps {
 }
 
 export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin, onUpdate, onDelete, compact = false }: TaskItemProps) {
-  const [editing, setEditing] = useState<boolean>(false);
+  const [editingTitle, setEditingTitle] = useState<boolean>(false);
+  const [editingDate, setEditingDate] = useState<boolean>(false);
   const [editTitle, setEditTitle] = useState<string>(task.title);
   const [editDate, setEditDate] = useState<string>(task.dueDate);
   const [editPriority, setEditPriority] = useState<Priority>(task.priority);
 
-  const handleUpdate = async () => {
-    await onUpdate({ title: editTitle, dueDate: editDate, priority: editPriority });
-    setEditing(false);
+
+  const handleTitleUpdate = async () => {
+    await onUpdate({ title: editTitle });
+    setEditingTitle(false);
+  }
+
+  const handlePriorityUpdate = async () => {
+    await onUpdate({ priority: editPriority })
+  }
+
+  const handleDateUpdate = async (nextDate?: string) => {
+    const dateToSave = nextDate ?? editDate;
+    if (nextDate !== undefined) setEditDate(nextDate);
+
+    await onUpdate({ dueDate: dateToSave });
   };
+
+
+  const [dateOpen, setDateOpen] = useState(false)
+
+  const selectedDate = task.dueDate ? new Date(task.dueDate + "T00:00:00") : undefined
+
+  const onPickDate = (d?: Date) => {
+    if (!d) return
+
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, "0")
+    const dd = String(d.getDate()).padStart(2, "0")
+    const iso = `${yyyy}-${mm}-${dd}`
+    handleDateUpdate(iso)     
+    setDateOpen(false)        
+  }
 
   const isOverdue = task.dueDate < DateUtils.today() && !task.completed;
 
@@ -49,93 +84,123 @@ export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin,
     return DateUtils.format(dateString);
   };
 
-  if (editing) {
-    return (
-      <div className="rounded-md p-3 space-y-2 bg-secondary">
-        <Input
-          type="text"
-          value={editTitle}
-          onChange={(e) => setEditTitle(e.target.value)}
-          className="bg-input"
-        />
-        <div className="flex gap-2">
-          <Input
-            type="date"
-            value={editDate}
-            onChange={(e) => setEditDate(e.target.value)}
-            className="flex-1 bg-input"
-          />
-          <Select value={editPriority} onValueChange={(value) => setEditPriority(value as Priority)}>
-            <SelectTrigger className="w-32 bg-input">
+  return (
+    <>
+      <div
+        className={cn(
+          "flex items-center justify-between gap-3 p-2 rounded-md bg-secondary hover:opacity-80 transition-colors overflow-hidden",
+          task.completed && "opacity-50"
+        )}
+      >
+        {/* LEFT: checkbox + title*/}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggle}
+            className="shrink-0 h-8 w-8 hover:bg-transparent"
+          >
+            {task.completed ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+          </Button>
+
+          {editingTitle ? (
+            <Input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  handleTitleUpdate()
+                }
+              }}
+              onBlur={() => handleTitleUpdate()}
+              className="bg-input min-w-0 flex-1"
+              autoFocus
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingTitle(true)}
+              className={cn(
+                "min-w-0 flex-1 text-sm text-foreground truncate text-left",
+                task.completed && "line-through"
+              )}
+            >
+              {task.title}
+            </button>
+          )}
+        </div>
+
+        {/* RIGHT: priority + date + delete */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Select
+            value={editPriority}
+            onValueChange={(value) => {
+              setEditPriority(value as Priority)
+              handlePriorityUpdate()
+            }}
+          >
+            <SelectTrigger
+              className={cn(
+                "inline-flex w-auto items-center rounded-md border border-transparent shadow px-2.5 py-0.5 text-xs font-semibold shrink-0 transition-colors h-auto",
+                "focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                priorityColors[editPriority],
+                "[&_svg]:hidden",
+                "pr-2" 
+              )}
+            >
               <SelectValue />
             </SelectTrigger>
+
             <SelectContent>
               <SelectItem value="low">Low</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="high">High</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div className="flex gap-2">
+
+          <Popover open={dateOpen} onOpenChange={setDateOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="secondary"
+                className={cn(
+                  "inline-flex w-auto items-center rounded-md border border-transparent shadow px-2.5 py-0.5 text-xs font-semibold shrink-0 transition-colors h-auto",
+                  "focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                  isOverdue
+                    ? "bg-[hsl(var(--error-bg))] text-[hsl(var(--error-fg))]"
+                    : "bg-secondary text-foreground"
+                )}
+                onClick={() => setDateOpen(true)}
+              >
+                {task.dueDate ? format(selectedDate!, "MMM d") : "No due date"}
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent
+              className="w-auto p-0 outline-none [&_*]:focus:outline-none [&_*]:focus-visible:ring-0 [&_*]:focus-visible:ring-offset-0"
+              align="start"
+            >
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={onPickDate}
+              />
+            </PopoverContent>
+          </Popover>
+
           <Button
-            onClick={handleUpdate}
-            size="sm"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            variant="ghost"
+            size="icon"
+            onClick={onDelete}
+            className="shrink-0 h-8 w-8 hover:text-destructive hover:bg-transparent text-muted-foreground"
           >
-            Save
-          </Button>
-          <Button
-            onClick={() => setEditing(false)}
-            variant="outline"
-            size="sm"
-            className="bg-secondary hover:bg-secondary/80"
-          >
-            Cancel
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div
-      className={`flex items-center gap-2 p-2 rounded-md bg-secondary hover:opacity-80 transition-colors overflow-hidden ${task.completed ? 'opacity-50' : ''}`}
-    >
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onToggle}
-        className="shrink-0 h-8 w-8 hover:bg-transparent"
-      >
-        {task.completed ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
-      </Button>
-
-      <span className={`min-w-0 flex-1 text-sm text-foreground truncate ${task.completed ? 'line-through' : ''}`}>
-        {task.title}
-      </span>
-
-      <Badge variant="secondary" className={'shrink-0 ' + priorityColors[task.priority]}>
-        {task.priority}
-      </Badge>
-      <Badge variant="secondary" className={isOverdue ? 'shrink-0 bg-[hsl(var(--error-bg))] text-[hsl(var(--error-fg))]' : 'shrink-0 bg-secondary text-foreground'}>
-        {formatDate(task.dueDate)}
-      </Badge>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setEditing(true)}
-        className="shrink-0 h-8 w-8 hover:bg-transparent text-muted-foreground"
-      >
-        <Edit className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onDelete}
-        className="shrink-0 h-8 w-8 hover:text-destructive hover:bg-transparent text-muted-foreground"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </div>
+    </>
   );
 }
