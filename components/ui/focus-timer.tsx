@@ -6,11 +6,7 @@ import { Play, Pause, Square } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/hooks';
 
-interface FocusTimerProps {
-  onSessionComplete: (duration: number) => void;
-}
-
-export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
+export function FocusTimer() {
   const { user } = useAuth(false);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
@@ -193,7 +189,7 @@ export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
     if (elapsedSeconds > 0) {
       // Do a final save before completing
       await saveOrUpdateSession();
-      onSessionComplete(elapsedSeconds);
+      // Don't call onSessionComplete - we're already saving to DB automatically
     }
     setIsRunning(false);
     setElapsedSeconds(0);

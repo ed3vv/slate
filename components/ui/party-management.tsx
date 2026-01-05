@@ -427,11 +427,14 @@ export function PartyManagement() {
                         </h4>
                         <div className="space-y-3">
                           {stats.map((stat, index) => {
-                            const percentage = (stat.total_minutes / maxMinutes) * 100;
                             const isCurrentUser = stat.user_id === user?.id;
                             const status = getUserStatus(stat.user_id, party.id);
                             const isActive = status?.is_active || false;
                             const currentSeconds = status?.current_seconds || 0;
+                            const currentMinutes = currentSeconds / 60;
+
+                            const savedPercentage = (stat.total_minutes / maxMinutes) * 100;
+                            const activePercentage = (currentMinutes / maxMinutes) * 100;
 
                             return (
                               <div key={stat.user_id} className="space-y-1">
@@ -475,22 +478,22 @@ export function PartyManagement() {
                                   </div>
                                 </div>
                                 <div className="h-3 bg-secondary rounded-full overflow-hidden relative">
-                                  {/* Base bar - 7 day total */}
+                                  {/* Base bar - 7 day saved total */}
                                   <div
                                     className={`h-full transition-all duration-300 ${
                                       isCurrentUser ? 'bg-primary' : 'bg-primary/60'
                                     }`}
-                                    style={{ width: `${percentage}%` }}
+                                    style={{ width: `${savedPercentage}%` }}
                                   />
-                                  {/* Active session bar - striped extension */}
+                                  {/* Active session bar - striped extension showing current active session */}
                                   {isActive && currentSeconds > 0 && (
                                     <div
                                       className={`absolute top-0 h-full transition-all duration-300 ${
                                         isCurrentUser ? 'bg-primary' : 'bg-primary/60'
                                       } bg-striped`}
                                       style={{
-                                        left: `${percentage}%`,
-                                        width: `${Math.min((currentSeconds / 60 / maxMinutes) * 100, 100 - percentage)}%`
+                                        left: `${savedPercentage}%`,
+                                        width: `${Math.min(activePercentage, 100 - savedPercentage)}%`
                                       }}
                                     />
                                   )}

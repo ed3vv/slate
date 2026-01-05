@@ -2,9 +2,7 @@
 
 import { useEffect } from "react";
 import { useAuth } from "@/lib/hooks";
-import { useFocusSessions } from "@/lib/useFocusSessions";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { DateUtils } from "@/lib/dateUtils";
 import { useTaskStats } from "@/lib/useTaskStats";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { FocusTimer } from "@/components/ui/focus-timer";
@@ -14,7 +12,6 @@ import { usePathname } from "next/navigation";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth(false);
-  const { addSession } = useFocusSessions(!authLoading && !!user, user?.id);
   useUserProfile(user?.id, user?.email);
   const pathname = usePathname();
   const { stats, overdueCount } = useTaskStats(!authLoading && !!user, user?.id);
@@ -38,12 +35,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  const handleSessionComplete = (duration: number) => {
-    if (duration > 0) {
-      addSession(DateUtils.today(), duration);
-    }
-  };
-
   return (
     <div className="mb-60 min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-8xl mx-auto">
@@ -54,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="flex flex-col gap-6 custom:flex-row">
           <div className="w-full flex-shrink-0 custom:w-80">
-            <FocusTimer onSessionComplete={handleSessionComplete} />
+            <FocusTimer />
             <DailyTodos />
           </div>
 
