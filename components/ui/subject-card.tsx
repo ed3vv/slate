@@ -102,83 +102,89 @@ export function SubjectCard({
     <Card className="shadow-md bg-card overflow-hidden flex flex-col">
       <div
         className="relative mb-6 p-4 cursor-pointer hover:opacity-80 transition-colors"
+        onClick={handleCardToggle}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3 flex-1">
             <button
               type="button"
               onClick={handleCardToggle}
-              className="flex items-center gap-3 text-left"
+              className="cursor-pointer hover:opacity-70 transition-opacity"
+              aria-label={subject.expanded ? "Collapse subject" : "Expand subject"}
             >
               {subject.expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-              <div className="relative">
-                <button
-                  type="button"
-                  className={cn("w-3 h-3 rounded-full cursor-pointer hover:opacity-70 transition-all", colorClass)}
-                  style={colorStyle}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    colorInputRef.current?.click();
-                  }}
-                  aria-label="Change subject color"
-                />
-                <input
-                  ref={colorInputRef}
-                  type="color"
-                  value={customColor}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setCustomColor(val);
-                    handleColorChange(val);
-                  }}
-                  className="absolute left-0 top-0 h-6 w-6 opacity-0 cursor-pointer"
-                  aria-hidden
-                />
-              </div>
-              {subject.expanded ? (
-                editingSubject ? (
-                  <Input
-                    type="text"
-                    value={editSubjectName}
-                    onChange={(e) => setEditSubjectName(e.target.value)}
-                    onBlur={handleUpdateSubject}
-                    onKeyPress={(e) => e.key === 'Enter' && handleUpdateSubject()}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-lg font-bold border-b-2 focus-visible:ring-0 bg-transparent px-0"
-                    autoFocus
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      setEditingSubject(true)
-                      e.stopPropagation()
-                    }}
-                  >
-                    <h3 className="text-lg font-bold text-foreground">
-                      {subject.name}
-                    </h3>
-                  </button>
-                )
-              ) : (
-                <h3 className="text-lg font-bold text-foreground">
-                  {subject.name}
-                </h3>
-              )}
             </button>
+            <div className="relative">
+              <div
+                className={cn("w-3 h-3 rounded-full cursor-pointer hover:opacity-70 transition-all", colorClass)}
+                style={colorStyle}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  colorInputRef.current?.click();
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    colorInputRef.current?.click();
+                  }
+                }}
+                aria-label="Change subject color"
+              />
+              <input
+                ref={colorInputRef}
+                type="color"
+                value={customColor}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomColor(val);
+                  handleColorChange(val);
+                }}
+                className="absolute left-0 top-0 h-6 w-6 opacity-0 cursor-pointer"
+                aria-hidden
+              />
+            </div>
+            {subject.expanded ? (
+              editingSubject ? (
+                <Input
+                  type="text"
+                  value={editSubjectName}
+                  onChange={(e) => setEditSubjectName(e.target.value)}
+                  onBlur={handleUpdateSubject}
+                  onKeyPress={(e) => e.key === 'Enter' && handleUpdateSubject()}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-lg font-bold border-b-2 focus-visible:ring-0 bg-transparent px-0"
+                  autoFocus
+                />
+              ) : (
+                <div
+                  onClick={(e) => {
+                    setEditingSubject(true);
+                    e.stopPropagation();
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setEditingSubject(true);
+                    }
+                  }}
+                  className="cursor-pointer"
+                >
+                  <h3 className="text-lg font-bold text-foreground">
+                    {subject.name}
+                  </h3>
+                </div>
+              )
+            ) : (
+              <h3 className="text-lg font-bold text-foreground">
+                {subject.name}
+              </h3>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditingSubject(true);
-              }}
-              className="h-8 w-8 hover:bg-secondary"
-            >
-              <Edit className="h-4 w-4 text-muted-foreground" />
-            </Button>
             <Button
               variant="ghost"
               size="icon"

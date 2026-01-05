@@ -117,7 +117,7 @@ export function PartyManagement() {
   const loadPartyStats = async (partyId: string) => {
     try {
       const stats = await getPartyStats(partyId);
-      setPartyStats({ ...partyStats, [partyId]: stats });
+      setPartyStats(prev => ({ ...prev, [partyId]: stats }));
     } catch (e) {
       console.error('Failed to load stats:', e);
     }
@@ -178,6 +178,21 @@ export function PartyManagement() {
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [parties]);
+
+  // Refresh party stats every minute to include newly saved session time
+  useEffect(() => {
+    if (parties.length === 0) return;
+
+    const interval = setInterval(() => {
+      console.log('[Party Stats] Minutely refresh triggered at', new Date().toLocaleTimeString());
+      parties.forEach(party => {
+        console.log('[Party Stats] Refreshing stats for party:', party.name);
+        loadPartyStats(party.id);
+      });
+    }, 60000); // 60 seconds
+
+    return () => clearInterval(interval);
   }, [parties]);
 
   const formatMinutes = (minutes: number): string => {

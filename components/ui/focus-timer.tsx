@@ -16,8 +16,10 @@ export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [accumulatedSeconds, setAccumulatedSeconds] = useState<number>(0);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const statusUpdateRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionSaveRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update user status in database
   const updateStatus = async (isActive: boolean, currentSeconds: number) => {
@@ -34,6 +36,48 @@ export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
         });
     } catch (error) {
       console.error('Failed to update status:', error);
+    }
+  };
+
+  // Save or update session in database
+  const saveOrUpdateSession = async () => {
+    if (!user?.id || elapsedSeconds === 0) return;
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      if (currentSessionId) {
+        // Update existing session
+        console.log('[Focus Timer] Updating session:', currentSessionId, 'with duration:', elapsedSeconds);
+        await supabase
+          .from('focus_sessions')
+          .update({
+            duration: elapsedSeconds,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', currentSessionId);
+      } else {
+        // Create new session
+        console.log('[Focus Timer] Creating new session with duration:', elapsedSeconds);
+        const { data, error } = await supabase
+          .from('focus_sessions')
+          .insert({
+            user_id: user.id,
+            duration: elapsedSeconds,
+            date: today,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Failed to create session:', error);
+        } else if (data) {
+          setCurrentSessionId(data.id);
+          console.log('[Focus Timer] New session created with ID:', data.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save/update session:', error);
     }
   };
 
@@ -93,6 +137,29 @@ export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
     };
   }, [user?.id]);
 
+  // Save/update session every minute when running
+  useEffect(() => {
+    if (isRunning && user?.id) {
+      // Save immediately when starting (after 5 seconds to avoid empty sessions)
+      const initialTimeout = setTimeout(() => {
+        saveOrUpdateSession();
+      }, 5000);
+
+      // Then save every 60 seconds
+      sessionSaveRef.current = setInterval(() => {
+        console.log('[Focus Timer] Minutely session save triggered at', new Date().toLocaleTimeString());
+        saveOrUpdateSession();
+      }, 60000);
+
+      return () => {
+        clearTimeout(initialTimeout);
+        if (sessionSaveRef.current) {
+          clearInterval(sessionSaveRef.current);
+        }
+      };
+    }
+  }, [isRunning, user?.id, elapsedSeconds, currentSessionId]);
+
   const formatTime = (totalSeconds: number): string => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -108,14 +175,17 @@ export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
     setIsRunning(!isRunning);
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
     if (elapsedSeconds > 0) {
+      // Do a final save before completing
+      await saveOrUpdateSession();
       onSessionComplete(elapsedSeconds);
     }
     setIsRunning(false);
     setElapsedSeconds(0);
     setSessionStartTime(null);
     setAccumulatedSeconds(0);
+    setCurrentSessionId(null); // Clear session ID for next session
   };
 
   return (
