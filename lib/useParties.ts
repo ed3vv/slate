@@ -31,6 +31,13 @@ export type MemberStats = {
   total_minutes: number;
 };
 
+export type MemberStatus = {
+  user_id: string;
+  is_active: boolean;
+  current_seconds: number;
+  last_updated: string;
+};
+
 export function useParties(enabled: boolean = true, userKey?: string) {
   const [parties, setParties] = useState<PartyWithMembers[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,6 +160,18 @@ export function useParties(enabled: boolean = true, userKey?: string) {
     async (partyId: string, emailOrUsername: string) => {
       if (!userKey) return;
       try {
+        // Check current member count
+        const { data: currentMembers, error: countError } = await supabase
+          .from("party_members")
+          .select("user_id")
+          .eq("party_id", partyId);
+
+        if (countError) throw countError;
+
+        if (currentMembers && currentMembers.length >= 6) {
+          throw new Error("Party is full. Maximum 6 members allowed.");
+        }
+
         const input = emailOrUsername.trim().toLowerCase();
 
         // Look up user by email or username
@@ -335,6 +354,38 @@ export function useParties(enabled: boolean = true, userKey?: string) {
     [userKey]
   );
 
+  const getPartyStatuses = useCallback(
+    async (partyId: string): Promise<MemberStatus[]> => {
+      if (!userKey) return [];
+      try {
+        // Get party members
+        const { data: members, error: membersError } = await supabase
+          .from("party_members")
+          .select("user_id")
+          .eq("party_id", partyId);
+
+        if (membersError) throw membersError;
+        if (!members || members.length === 0) return [];
+
+        const userIds = members.map((m) => m.user_id);
+
+        // Get current statuses
+        const { data: statuses, error: statusesError } = await supabase
+          .from("user_status")
+          .select("user_id, is_active, current_seconds, last_updated")
+          .in("user_id", userIds);
+
+        if (statusesError) throw statusesError;
+
+        return statuses || [];
+      } catch (e: any) {
+        console.error("Get party statuses error:", e);
+        return [];
+      }
+    },
+    [userKey]
+  );
+
   return {
     parties,
     loading,
@@ -347,5 +398,6 @@ export function useParties(enabled: boolean = true, userKey?: string) {
     leaveParty,
     deleteParty,
     getPartyStats,
+    getPartyStatuses,
   };
 }

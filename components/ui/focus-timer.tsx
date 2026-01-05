@@ -3,18 +3,41 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Pause, Square } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/hooks';
 
 interface FocusTimerProps {
   onSessionComplete: (duration: number) => void;
 }
 
 export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
+  const { user } = useAuth(false);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [accumulatedSeconds, setAccumulatedSeconds] = useState<number>(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const statusUpdateRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Update user status in database
+  const updateStatus = async (isActive: boolean, currentSeconds: number) => {
+    if (!user?.id) return;
+
+    try {
+      await supabase
+        .from('user_status')
+        .upsert({
+          user_id: user.id,
+          is_active: isActive,
+          current_seconds: currentSeconds,
+          last_updated: new Date().toISOString(),
+        });
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  };
+
+  // Timer interval effect
   useEffect(() => {
     if (isRunning) {
       if (!sessionStartTime) {
@@ -38,6 +61,37 @@ export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
       }
     };
   }, [isRunning, sessionStartTime, accumulatedSeconds]);
+
+  // Broadcast status every 5 seconds when running
+  useEffect(() => {
+    if (isRunning && user?.id) {
+      // Update immediately when starting
+      updateStatus(true, elapsedSeconds);
+
+      // Then update every 5 seconds
+      statusUpdateRef.current = setInterval(() => {
+        updateStatus(true, elapsedSeconds);
+      }, 5000);
+    } else if (user?.id) {
+      // Update to inactive when stopped
+      updateStatus(false, elapsedSeconds);
+    }
+
+    return () => {
+      if (statusUpdateRef.current) {
+        clearInterval(statusUpdateRef.current);
+      }
+    };
+  }, [isRunning, elapsedSeconds, user?.id]);
+
+  // Set inactive on unmount
+  useEffect(() => {
+    return () => {
+      if (user?.id) {
+        updateStatus(false, 0);
+      }
+    };
+  }, [user?.id]);
 
   const formatTime = (totalSeconds: number): string => {
     const hours = Math.floor(totalSeconds / 3600);

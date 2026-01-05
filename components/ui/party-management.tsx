@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, UserPlus, Users, Trash2, LogOut, Crown, Edit2, X, Check } from 'lucide-react';
-import { useParties, type PartyWithMembers, type MemberStats } from '@/lib/useParties';
+import { Plus, UserPlus, Users, Trash2, LogOut, Crown, Edit2, X, Check, Circle } from 'lucide-react';
+import { useParties, type PartyWithMembers, type MemberStats, type MemberStatus } from '@/lib/useParties';
 import { useAuth } from '@/lib/hooks';
+import { supabase } from '@/lib/supabaseClient';
 
 export function PartyManagement() {
   const { user, loading: authLoading } = useAuth(false);
@@ -20,12 +21,14 @@ export function PartyManagement() {
     leaveParty,
     deleteParty,
     getPartyStats,
+    getPartyStatuses,
   } = useParties(!authLoading && !!user, user?.id);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newPartyName, setNewPartyName] = useState('');
   const [inviteEmail, setInviteEmail] = useState<{ [key: string]: string }>({});
   const [partyStats, setPartyStats] = useState<{ [key: string]: MemberStats[] }>({});
+  const [partyStatuses, setPartyStatuses] = useState<{ [key: string]: MemberStatus[] }>({});
   const [editingParty, setEditingParty] = useState<{ [key: string]: boolean }>({});
   const [editedName, setEditedName] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState('');
@@ -117,13 +120,62 @@ export function PartyManagement() {
     }
   };
 
+  const loadPartyStatuses = async (partyId: string) => {
+    try {
+      const statuses = await getPartyStatuses(partyId);
+      setPartyStatuses(prev => ({ ...prev, [partyId]: statuses }));
+    } catch (e) {
+      console.error('Failed to load statuses:', e);
+    }
+  };
+
   // Load stats for all parties on mount and when parties change
   useEffect(() => {
     parties.forEach((party) => {
       loadPartyStats(party.id);
+      loadPartyStatuses(party.id);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parties.length]);
+
+  // Subscribe to real-time status updates
+  useEffect(() => {
+    if (parties.length === 0) return;
+
+    // Get all unique user IDs from all parties
+    const allUserIds = new Set<string>();
+    parties.forEach(party => {
+      party.members.forEach(member => {
+        allUserIds.add(member.user_id);
+      });
+    });
+
+    if (allUserIds.size === 0) return;
+
+    // Subscribe to status changes
+    const channel = supabase
+      .channel('user_status_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_status',
+          filter: `user_id=in.(${Array.from(allUserIds).join(',')})`,
+        },
+        () => {
+          // Reload statuses for all parties when any status changes
+          parties.forEach(party => {
+            loadPartyStatuses(party.id);
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [parties]);
 
   const formatMinutes = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
@@ -131,6 +183,21 @@ export function PartyManagement() {
     if (hours === 0) return `${mins}m`;
     if (mins === 0) return `${hours}h`;
     return `${hours}h ${mins}m`;
+  };
+
+  const formatTime = (totalSeconds: number): string => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getUserStatus = (userId: string, partyId: string): MemberStatus | null => {
+    const statuses = partyStatuses[partyId] || [];
+    return statuses.find(s => s.user_id === userId) || null;
   };
 
   const isPartyCreator = (party: PartyWithMembers): boolean => {
@@ -325,6 +392,9 @@ export function PartyManagement() {
                           {stats.map((stat, index) => {
                             const percentage = (stat.total_minutes / maxMinutes) * 100;
                             const isCurrentUser = stat.user_id === user?.id;
+                            const status = getUserStatus(stat.user_id, party.id);
+                            const isActive = status?.is_active || false;
+                            const currentSeconds = status?.current_seconds || 0;
 
                             return (
                               <div key={stat.user_id} className="space-y-1">
@@ -333,12 +403,22 @@ export function PartyManagement() {
                                     <span className="font-medium text-muted-foreground w-6">
                                       #{index + 1}
                                     </span>
+                                    <div title={isActive ? 'Active' : 'Offline'}>
+                                      <Circle
+                                        className={`h-2 w-2 ${isActive ? 'fill-green-500 text-green-500' : 'fill-gray-400 text-gray-400'}`}
+                                      />
+                                    </div>
                                     <span className="text-foreground font-medium">
                                       {stat.username || stat.email}
                                       {isCurrentUser && (
                                         <span className="ml-2 text-xs text-muted-foreground">(you)</span>
                                       )}
                                     </span>
+                                    {!isCurrentUser && isActive && currentSeconds > 0 && (
+                                      <span className="text-xs text-green-600 dark:text-green-400 font-mono">
+                                        {formatTime(currentSeconds)}
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-3">
                                     <span className="font-semibold text-primary">
@@ -357,13 +437,26 @@ export function PartyManagement() {
                                     )}
                                   </div>
                                 </div>
-                                <div className="h-3 bg-secondary rounded-full overflow-hidden">
+                                <div className="h-3 bg-secondary rounded-full overflow-hidden relative">
+                                  {/* Base bar - 7 day total */}
                                   <div
                                     className={`h-full transition-all duration-300 ${
                                       isCurrentUser ? 'bg-primary' : 'bg-primary/60'
                                     }`}
                                     style={{ width: `${percentage}%` }}
                                   />
+                                  {/* Active session bar - striped extension */}
+                                  {isActive && currentSeconds > 0 && (
+                                    <div
+                                      className={`absolute top-0 h-full transition-all duration-300 ${
+                                        isCurrentUser ? 'bg-primary' : 'bg-primary/60'
+                                      } bg-striped`}
+                                      style={{
+                                        left: `${percentage}%`,
+                                        width: `${Math.min((currentSeconds / 60 / maxMinutes) * 100, 100 - percentage)}%`
+                                      }}
+                                    />
+                                  )}
                                 </div>
                               </div>
                             );

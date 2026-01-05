@@ -225,3 +225,25 @@
     transform: translateX(0.5rem);
   }
 }
+
+/* Striped pattern for active session bars */
+.bg-striped {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(255, 255, 255, 0.2) 8px,
+    rgba(255, 255, 255, 0.2) 16px
+  );
+  background-size: 22.6px 22.6px;
+  animation: stripes 2s linear infinite;
+}
+
+@keyframes stripes {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 22.6px 0;
+  }
+}

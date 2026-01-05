@@ -35,8 +35,10 @@ export function LoginCharacters({ focusedField, isSurprised, mousePosition }: Lo
     const deltaX = mousePosition.x - centerX;
     const deltaY = mousePosition.y - centerY;
 
-    // Normalize to -1 to 1 range with max distance of 300px
-    const maxDistance = 300;
+    // Use a smaller max distance for more responsive tracking
+    const maxDistance = 200;
+
+    // Clamp the values to prevent extreme movements
     const normalizedX = Math.max(-1, Math.min(1, deltaX / maxDistance));
     const normalizedY = Math.max(-1, Math.min(1, deltaY / maxDistance));
 
@@ -74,48 +76,23 @@ export function LoginCharacters({ focusedField, isSurprised, mousePosition }: Lo
         <div className="w-32 h-32 bg-primary rounded-2xl flex items-center justify-center relative">
           {/* Face group (eyes and mouth move together) */}
           <div
-            className="flex flex-col items-center gap-3 pointer-events-none"
+            className="flex flex-col items-center gap-3"
             style={{
               transform: facePosition.transform,
-              transition: facePosition.inline ? 'transform 0.5s ease-in-out' : 'transform 0.15s ease-out'
+              transition: facePosition.inline ? 'transform 0.5s ease-in-out' : 'none'
             }}
           >
             {/* Eyes */}
             <div className="flex items-center justify-center gap-4">
-              {/* Left Eye */}
-              <div className={`relative transition-all duration-500 ease-in-out ${
-                isLookingAway ? 'w-4 h-1' : 'w-4 h-4'
-              }`}>
-                {/* Eye white background */}
-                <div className={`absolute inset-0 bg-white rounded-full transition-all duration-500 ease-in-out ${
-                  isLookingAway ? 'opacity-0' : 'opacity-100'
-                }`} />
-                {/* Pupil that morphs into closed eye line */}
-                <div className={`absolute bg-black rounded-full transition-all duration-500 ease-in-out ${
-                  isLookingAway
-                    ? 'w-4 h-1 left-0 top-0'
-                    : isLookingRight
-                    ? 'w-2 h-2 left-2 top-1'
-                    : 'w-2 h-2 left-1 top-1'
-                }`} />
-              </div>
-              {/* Right Eye */}
-              <div className={`relative transition-all duration-500 ease-in-out ${
-                isLookingAway ? 'w-4 h-1' : 'w-4 h-4'
-              }`}>
-                {/* Eye white background */}
-                <div className={`absolute inset-0 bg-white rounded-full transition-all duration-500 ease-in-out ${
-                  isLookingAway ? 'opacity-0' : 'opacity-100'
-                }`} />
-                {/* Pupil that morphs into closed eye line */}
-                <div className={`absolute bg-black rounded-full transition-all duration-500 ease-in-out ${
-                  isLookingAway
-                    ? 'w-4 h-1 left-0 top-0'
-                    : isLookingRight
-                    ? 'w-2 h-2 left-2 top-1'
-                    : 'w-2 h-2 left-1 top-1'
-                }`} />
-              </div>
+              {/* Left Eye - simple dot that morphs to line when looking away */}
+              <div className={`bg-primary-foreground rounded-full transition-all duration-500 ease-in-out 
+              ${
+                isLookingAway ? 'w-4 h-1' : 'w-2 h-2'
+              }`} />
+              {/* Right Eye - simple dot that morphs to line when looking away */}
+              <div className={`bg-primary-foreground rounded-full transition-all duration-500 ease-in-out ${
+                isLookingAway ? 'w-4 h-1' : 'w-2 h-2'
+              }`} />
             </div>
 
             {/* Mouth */}

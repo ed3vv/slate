@@ -71,30 +71,14 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }: Calen
     <Card className="shadow-md bg-card">
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-foreground">{monthName}</h2>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-              variant="outline"
-              className="bg-secondary hover:bg-secondary/80"
-            >
-              ←
-            </Button>
-            <Button
-              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-              variant="outline"
-              className="bg-secondary hover:bg-secondary/80"
-            >
-              →
-            </Button>
-            <Button
-              onClick={() => setShowAddEvent(true)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Event
-            </Button>
-          </div>
+          <h2 className="text-2xl font-bold text-foreground">Calendar</h2>
+          <Button
+            onClick={() => setShowAddEvent(true)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Event
+          </Button>
         </div>
 
         {showAddEvent && (
@@ -138,7 +122,7 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }: Calen
           </div>
         )}
 
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-2 mb-6">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
             <div key={day} className="text-center font-bold py-2 text-foreground">
               {day}
@@ -154,33 +138,40 @@ export function CalendarView({ tasks, events, onAddEvent, onDeleteEvent }: Calen
             const isToday = dateStr === today;
             const { tasks: dayTasks, events: dayEvents } = getItemsForDate(day);
             const hasItems = dayTasks.length > 0 || dayEvents.length > 0;
+            const isSelected = selectedDate === dateStr;
+
+            const borderClass = isSelected
+              ? 'border-primary'
+              : isToday
+                ? 'border-border'
+                : 'border-border hover:border-primary/50';
 
             return (
               <div
                 key={day.toISOString()}
                 className={`aspect-square border-2 rounded-md p-2 cursor-pointer transition-all overflow-hidden flex flex-col ${
                   isToday ? 'bg-secondary' : 'bg-card'
-                }`}
+                } ${borderClass}`}
                 onClick={() => setSelectedDate(selectedDate === dateStr ? null : dateStr)}
               >
                 <div className={`text-sm font-medium ${isToday ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {day.getDate()}
                 </div>
                 {hasItems && (
-                  <div className="mt-1 space-y-1">
-                    {dayEvents.slice(0, 4).map(event => (
+                  <div className="mt-1 space-y-1 flex-1 overflow-hidden">
+                    {dayEvents.slice(0, 2).map(event => (
                       <div key={event.id} className="text-xs truncate px-1 rounded bg-[hsl(var(--event))] text-white">
                         {event.title}
                       </div>
                     ))}
-                    {dayTasks.slice(0, Math.max(0, 4 - dayEvents.length)).map(task => (
+                    {dayTasks.slice(0, Math.max(0, 2 - dayEvents.length)).map(task => (
                       <div key={task.id} className={`text-xs truncate px-1 rounded ${task.subjectColor} text-white`}>
                         {task.title}
                       </div>
                     ))}
 
-                    {(dayTasks.length + dayEvents.length > 4) && (
-                      <div className="text-xs text-muted-foreground">+{dayTasks.length + dayEvents.length - 4} more</div>
+                    {(dayTasks.length + dayEvents.length > 2) && (
+                      <div className="text-xs text-muted-foreground">+{dayTasks.length + dayEvents.length - 2}</div>
                     )}
                   </div>
                 )}
