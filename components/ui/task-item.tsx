@@ -3,12 +3,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { CheckSquare, Square, Edit, Trash2 } from 'lucide-react';
 import { DateUtils } from '@/lib/dateUtils';
 import type { Task, Priority } from '@/types';
 import { cn } from '@/lib/utils';
-
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -27,7 +25,6 @@ interface TaskItemProps {
 
 export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin, onUpdate, onDelete, compact = false }: TaskItemProps) {
   const [editingTitle, setEditingTitle] = useState<boolean>(false);
-  const [editingDate, setEditingDate] = useState<boolean>(false);
   const [editTitle, setEditTitle] = useState<string>(task.title);
   const [editDate, setEditDate] = useState<string>(task.dueDate);
   const [editPriority, setEditPriority] = useState<Priority>(task.priority);
@@ -47,6 +44,12 @@ export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin,
     if (nextDate !== undefined) setEditDate(nextDate);
 
     await onUpdate({ dueDate: dateToSave });
+  };
+
+  const handleDelete = () => {
+    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
+      onDelete();
+    }
   };
 
 
@@ -193,7 +196,7 @@ export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin,
           <Button
             variant="ghost"
             size="icon"
-            onClick={onDelete}
+            onClick={handleDelete}
             className="shrink-0 h-8 w-8 hover:text-destructive hover:bg-transparent text-muted-foreground"
           >
             <Trash2 className="h-4 w-4" />

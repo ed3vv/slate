@@ -8,6 +8,7 @@ import { Plus, UserPlus, Users, Trash2, LogOut, Crown, Edit2, X, Check, Circle }
 import { useParties, type PartyWithMembers, type MemberStats, type MemberStatus } from '@/lib/useParties';
 import { useAuth } from '@/lib/hooks';
 import { supabase } from '@/lib/supabaseClient';
+import { usePathname, useRouter } from 'next/navigation';
 
 export function PartyManagement() {
   const { user, loading: authLoading } = useAuth(false);
@@ -32,6 +33,8 @@ export function PartyManagement() {
   const [editingParty, setEditingParty] = useState<{ [key: string]: boolean }>({});
   const [editedName, setEditedName] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState('');
+  const pathname = usePathname();
+  const router = useRouter();
 
   const handleCreateParty = async () => {
     if (!newPartyName.trim()) {
@@ -204,7 +207,11 @@ export function PartyManagement() {
     return party.created_by === user?.id;
   };
 
+  const isPartyPage = (partyId: string) => pathname === `/analytics/${partyId}`;
+  const isRootAnalytics = pathname === '/analytics';
+
   const toggleEditMode = (partyId: string, partyName: string) => {
+    if (!isPartyPage(partyId)) return;
     const isEditing = !editingParty[partyId];
     setEditingParty({ ...editingParty, [partyId]: isEditing });
     if (isEditing) {
@@ -280,9 +287,22 @@ export function PartyManagement() {
                 const rawMaxMinutes = Math.max(...stats.map((s) => s.total_minutes), 1);
                 const maxMinutes = Math.ceil(rawMaxMinutes / 60) * 60;
                 const isEditing = editingParty[party.id];
+                const onPartyPage = isPartyPage(party.id);
 
                 return (
-                  <div key={party.id} className="border border-border rounded-lg p-4 group">
+                  <div
+                    key={party.id}
+                    className="border border-border rounded-lg p-4 group cursor-pointer hover:border-primary/60 transition-colors"
+                    onClick={() => router.push(`/analytics/${party.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        router.push(`/analytics/${party.id}`);
+                      }
+                    }}
+                  >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         {isEditing ? (
@@ -296,14 +316,14 @@ export function PartyManagement() {
                               onKeyDown={(e) => e.key === 'Enter' && handleUpdateParty(party.id)}
                             />
                             <Button
-                              onClick={() => handleUpdateParty(party.id)}
+                              onClick={(e) => { e.stopPropagation(); handleUpdateParty(party.id); }}
                               size="sm"
                               variant="ghost"
                             >
                               <Check className="h-4 w-4" />
                             </Button>
                             <Button
-                              onClick={() => toggleEditMode(party.id, party.name)}
+                              onClick={(e) => { e.stopPropagation(); toggleEditMode(party.id, party.name); }}
                               size="sm"
                               variant="ghost"
                             >
@@ -326,42 +346,44 @@ export function PartyManagement() {
                           </>
                         )}
                       </div>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100">
-                        {isPartyCreator(party) && !isEditing && (
-                          <Button
-                            onClick={() => toggleEditMode(party.id, party.name)}
-                            size="sm"
-                            variant="outline"
-                            title="Edit party"
+                      {onPartyPage && (
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100">
+                          {isPartyCreator(party) && !isEditing && (
+                            <Button
+                              onClick={(e) => { e.stopPropagation(); toggleEditMode(party.id, party.name); }}
+                              size="sm"
+                              variant="outline"
+                              title="Edit party"
                       
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {isPartyCreator(party) ? (
-                          <Button
-                            onClick={() => handleDeleteParty(party.id)}
-                            size="sm"
-                            variant="destructive"
-                            title="Delete party"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => handleLeaveParty(party.id)}
-                            size="sm"
-                            variant="outline"
-                            title="Leave party"
-                          >
-                            <LogOut className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {isPartyCreator(party) ? (
+                            <Button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteParty(party.id); }}
+                              size="sm"
+                              variant="destructive"
+                              title="Delete party"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={(e) => { e.stopPropagation(); handleLeaveParty(party.id); }}
+                              size="sm"
+                              variant="outline"
+                              title="Leave party"
+                            >
+                              <LogOut className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Invite Form - Only visible in edit mode */}
-                    {isEditing && isPartyCreator(party) && (
+                    {isEditing && isPartyCreator(party) && onPartyPage && (
                       <div className="mb-4 p-3 bg-secondary rounded-lg">
                         <h4 className="text-sm font-medium mb-2 text-foreground">Invite Member</h4>
                         <div className="flex gap-2">
@@ -424,9 +446,9 @@ export function PartyManagement() {
                                     <span className="font-semibold text-primary">
                                       {formatMinutes(stat.total_minutes)}
                                     </span>
-                                    {isEditing && isPartyCreator(party) && !isCurrentUser && (
+                                    {isEditing && isPartyCreator(party) && !isCurrentUser && onPartyPage && (
                                       <Button
-                                        onClick={() => handleRemoveMember(party.id, stat.user_id)}
+                                        onClick={(e) => { e.stopPropagation(); handleRemoveMember(party.id, stat.user_id); }}
                                         size="sm"
                                         variant="ghost"
                                         className="h-6 w-6 p-0 hover:text-destructive"

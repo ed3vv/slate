@@ -31,6 +31,15 @@ export type MemberStats = {
   total_minutes: number;
 };
 
+export type PartyDailySeries = {
+  labels: string[];
+  series: Array<{
+    user_id: string;
+    label: string;
+    data: number[]; // minutes per day
+  }>;
+};
+
 export type MemberStatus = {
   user_id: string;
   is_active: boolean;
@@ -386,6 +395,66 @@ export function useParties(enabled: boolean = true, userKey?: string) {
     [userKey]
   );
 
+  const getPartyDailySeries = useCallback(
+    async (partyId: string, days: number = 7): Promise<PartyDailySeries> => {
+      if (!userKey) return { labels: [], series: [] };
+      try {
+        const { data: members, error: membersError } = await supabase
+          .from("party_members")
+          .select("user_id, email, username")
+          .eq("party_id", partyId);
+
+        if (membersError) throw membersError;
+        if (!members || members.length === 0) return { labels: [], series: [] };
+
+        const userIds = members.map((m) => m.user_id);
+
+        const start = new Date();
+        start.setDate(start.getDate() - (days - 1));
+        const startStr = start.toISOString().split("T")[0];
+
+        const { data: sessions, error: sessionsError } = await supabase
+          .from("focus_sessions")
+          .select("user_id, duration, date")
+          .in("user_id", userIds)
+          .gte("date", startStr);
+
+        if (sessionsError) throw sessionsError;
+
+        const labels: string[] = [];
+        for (let i = 0; i < days; i++) {
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          labels.push(d.toISOString().split("T")[0]);
+        }
+
+        const series = members.map((member) => {
+          const userSessions = (sessions || []).filter(
+            (s) => s.user_id === member.user_id
+          );
+          const dailyTotals = labels.map((label) => {
+            const totalSeconds = userSessions
+              .filter((s) => s.date === label)
+              .reduce((sum, s) => sum + (s.duration || 0), 0);
+            return Math.round(totalSeconds / 60);
+          });
+
+          return {
+            user_id: member.user_id,
+            label: member.username || member.email,
+            data: dailyTotals,
+          };
+        });
+
+        return { labels, series };
+      } catch (e: any) {
+        console.error("Get party daily series error:", e);
+        return { labels: [], series: [] };
+      }
+    },
+    [userKey]
+  );
+
   return {
     parties,
     loading,
@@ -399,5 +468,6 @@ export function useParties(enabled: boolean = true, userKey?: string) {
     deleteParty,
     getPartyStats,
     getPartyStatuses,
+    getPartyDailySeries,
   };
 }
