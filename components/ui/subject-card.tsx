@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,6 @@ import { TaskItem } from './task-item';
 import { Progress } from '@/components/ui/progress';
 import type { Subject, Task, Priority } from '@/types';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 
 interface SubjectCardProps {
@@ -43,17 +42,22 @@ export function SubjectCard({
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>('medium');
   const [editingSubject, setEditingSubject] = useState<boolean>(false);
   const [editSubjectName, setEditSubjectName] = useState<string>(subject.name);
-  const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
-  const [customColor, setCustomColor] = useState<string>('#3b82f6');
-
-  const availableColors = [
-    '#8b5cf6',
-    '#f97316',
-    '#ef4444',
-    '#0ea5e9',
-    '#22c55e',
-    '#3b82f6'
-  ];
+  const colorFallbacks: Record<string, string> = {
+    'bg-[hsl(var(--subject-violet))]': '#8b5cf6',
+    'bg-[hsl(var(--subject-amber))]': '#f59e0b',
+    'bg-[hsl(var(--subject-rose))]': '#ef4444',
+    'bg-[hsl(var(--subject-sky))]': '#0ea5e9',
+    'bg-[hsl(var(--subject-emerald))]': '#22c55e',
+    'bg-[hsl(var(--subject-indigo))]': '#6366f1',
+    'bg-[#22c55e]': '#22c55e',
+    'bg-[#3b82f6]': '#3b82f6',
+  };
+  const resolveColor = (value: string) => {
+    if (value?.startsWith('#') || value?.startsWith('rgb')) return value;
+    return colorFallbacks[value] || '#3b82f6';
+  };
+  const [customColor, setCustomColor] = useState<string>(() => resolveColor(subject.color));
+  const colorInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;
@@ -75,8 +79,11 @@ export function SubjectCard({
 
   const handleColorChange = async (color: string) => {
     await onUpdateSubject(subject.id, { color });
-    setShowColorPicker(false);
   };
+
+  useEffect(() => {
+    setCustomColor(resolveColor(subject.color));
+  }, [subject.color]);
 
   const completedCount = subject.tasks.filter(t => t.completed).length;
   const totalCount = subject.tasks.length;
@@ -95,90 +102,70 @@ export function SubjectCard({
     <Card className="shadow-md bg-card overflow-hidden flex flex-col">
       <div
         className="relative mb-6 p-4 cursor-pointer hover:opacity-80 transition-colors"
-        onClick={handleCardToggle}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3 flex-1">
-            {subject.expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-            <div className="relative">
-              <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
-                <PopoverTrigger asChild>
-                  <button
-                    className={cn("w-3 h-3 rounded-full cursor-pointer hover:opacity-70 transition-all", colorClass)}
-                    style={colorStyle}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label="Change subject color"
-                  />
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-56 p-3 space-y-3"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <p className="text-sm font-medium text-foreground">Subject color</p>
-                  <div className="grid grid-cols-6 gap-2">
-                    {availableColors.map((color) => (
-                      <button
-                        key={color}
-                        className="h-8 w-full rounded-md border border-border"
-                        style={{ backgroundColor: color }}
-                        onClick={() => handleColorChange(color)}
-                        aria-label={`Choose ${color}`}
-                      />
-                    ))}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-muted-foreground">Custom</label>
-                    <Input
-                      type="color"
-                      value={customColor}
-                      onChange={(e) => setCustomColor(e.target.value)}
-                      className="h-10 p-1"
-                    />
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      onClick={() => handleColorChange(customColor)}
-                    >
-                      Apply color
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-            {subject.expanded ? (
-              editingSubject ? (
-                <Input
-                  type="text"
-                  value={editSubjectName}
-                  onChange={(e) => setEditSubjectName(e.target.value)}
-                  onBlur={handleUpdateSubject}
-                  onKeyPress={(e) => e.key === 'Enter' && handleUpdateSubject()}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-lg font-bold border-b-2 focus-visible:ring-0 bg-transparent px-0"
-                  autoFocus
-                />
-              ) : (
+            <button
+              type="button"
+              onClick={handleCardToggle}
+              className="flex items-center gap-3 text-left"
+            >
+              {subject.expanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+              <div className="relative">
                 <button
-                
                   type="button"
+                  className={cn("w-3 h-3 rounded-full cursor-pointer hover:opacity-70 transition-all", colorClass)}
+                  style={colorStyle}
                   onClick={(e) => {
-                    setEditingSubject(true)
-                    e.stopPropagation()
+                    e.stopPropagation();
+                    colorInputRef.current?.click();
                   }}
-
-                >
-                  <h3 className="text-lg font-bold text-foreground">
-                    {subject.name}
-                  </h3>
-                </button>
-                
-              )
-            ) : (
-              <h3 className="text-lg font-bold text-foreground">
-                {subject.name}
-              </h3>
-            )}
-
+                  aria-label="Change subject color"
+                />
+                <input
+                  ref={colorInputRef}
+                  type="color"
+                  value={customColor}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCustomColor(val);
+                    handleColorChange(val);
+                  }}
+                  className="absolute left-0 top-0 h-6 w-6 opacity-0 cursor-pointer"
+                  aria-hidden
+                />
+              </div>
+              {subject.expanded ? (
+                editingSubject ? (
+                  <Input
+                    type="text"
+                    value={editSubjectName}
+                    onChange={(e) => setEditSubjectName(e.target.value)}
+                    onBlur={handleUpdateSubject}
+                    onKeyPress={(e) => e.key === 'Enter' && handleUpdateSubject()}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-lg font-bold border-b-2 focus-visible:ring-0 bg-transparent px-0"
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      setEditingSubject(true)
+                      e.stopPropagation()
+                    }}
+                  >
+                    <h3 className="text-lg font-bold text-foreground">
+                      {subject.name}
+                    </h3>
+                  </button>
+                )
+              ) : (
+                <h3 className="text-lg font-bold text-foreground">
+                  {subject.name}
+                </h3>
+              )}
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <Button
