@@ -45,39 +45,53 @@ export function FocusTimer({ onSessionComplete }: FocusTimerProps) {
 
     try {
       const today = new Date().toISOString().split('T')[0];
+      const now = new Date().toISOString();
 
       if (currentSessionId) {
         // Update existing session
         console.log('[Focus Timer] Updating session:', currentSessionId, 'with duration:', elapsedSeconds);
-        await supabase
+        const { error } = await supabase
           .from('focus_sessions')
           .update({
             duration: elapsedSeconds,
-            updated_at: new Date().toISOString(),
+            updatedAt: now,
           })
           .eq('id', currentSessionId);
+
+        if (error) {
+          console.error('[Focus Timer] Failed to update session:', error);
+        } else {
+          console.log('[Focus Timer] Session updated successfully');
+        }
       } else {
         // Create new session
         console.log('[Focus Timer] Creating new session with duration:', elapsedSeconds);
+        const sessionId = crypto.randomUUID();
+        const timestamp = Date.now();
+
         const { data, error } = await supabase
           .from('focus_sessions')
           .insert({
+            id: sessionId,
             user_id: user.id,
             duration: elapsedSeconds,
             date: today,
+            timestamp: timestamp,
+            createdAt: now,
+            updatedAt: now,
           })
           .select()
           .single();
 
         if (error) {
-          console.error('Failed to create session:', error);
+          console.error('[Focus Timer] Failed to create session:', error);
         } else if (data) {
           setCurrentSessionId(data.id);
           console.log('[Focus Timer] New session created with ID:', data.id);
         }
       }
     } catch (error) {
-      console.error('Failed to save/update session:', error);
+      console.error('[Focus Timer] Failed to save/update session:', error);
     }
   };
 

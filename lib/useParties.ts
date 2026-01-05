@@ -177,8 +177,8 @@ export function useParties(enabled: boolean = true, userKey?: string) {
 
         if (countError) throw countError;
 
-        if (currentMembers && currentMembers.length >= 6) {
-          throw new Error("Party is full. Maximum 6 members allowed.");
+        if (currentMembers && currentMembers.length >= 10) {
+          throw new Error("Party is full. Maximum 10 members allowed.");
         }
 
         const input = emailOrUsername.trim().toLowerCase();
