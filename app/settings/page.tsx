@@ -79,47 +79,47 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-
-          {/* Timezone */}
-          <div className="p-4 bg-card rounded-lg border">
-            <h2 className="text-lg font-medium text-foreground mb-3">Timezone</h2>
-            <p className="text-sm text-muted-foreground mb-3">Select your timezone for accurate time displays</p>
-            <Select value={timezone} onValueChange={handleTimezoneChange}>
-              <SelectTrigger className="w-full bg-background">
-                <SelectValue placeholder="Select timezone" />
-              </SelectTrigger>
-              <SelectContent>
-                {TIMEZONES.map((tz) => (
-                  <SelectItem key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Appearance */}
-          <div className="flex items-center justify-between p-4 bg-card rounded-lg border">
-            <div>
-              <h2 className="text-lg font-medium text-foreground">Appearance</h2>
-              <p className="text-sm text-muted-foreground">Toggle between light and dark mode</p>
+          <div className="flex items-stretch gap-6">
+            {/* Timezone */}
+            <div className="flex-1 p-4 bg-card rounded-lg border">
+              <h2 className="text-lg font-medium text-foreground mb-3">Timezone</h2>
+              <p className="text-sm text-muted-foreground mb-3">Select your timezone for accurate time displays</p>
+              <Select value={timezone} onValueChange={handleTimezoneChange}>
+                <SelectTrigger className="w-full bg-background">
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setIsDark(!isDark)}
-              aria-label="Toggle dark mode"
-              className="bg-card text-foreground hover:bg-secondary hover:text-foreground"
-            >
-              {mounted ? (
-                isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />
-              ) : (
-                <div className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
+            {/* Appearance */}
+            <div className="flex-1 flex items-center justify-between p-4 bg-card rounded-lg border">
+              <div>
+                <h2 className="text-lg font-medium text-foreground">Appearance</h2>
+                <p className="text-sm text-muted-foreground">Toggle between light and dark mode</p>
+              </div>
 
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsDark(!isDark)}
+                aria-label="Toggle dark mode"
+                className="bg-card text-foreground hover:bg-secondary hover:text-foreground"
+              >
+                {mounted ? (
+                  isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />
+                ) : (
+                  <div className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          </div>
 
 
           <div className="flex items-center gap-2">

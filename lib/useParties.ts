@@ -304,7 +304,7 @@ export function useParties(enabled: boolean = true, userKey?: string) {
   );
 
   const getPartyStats = useCallback(
-    async (partyId: string): Promise<MemberStats[]> => {
+    async (partyId: string, timezone: string = 'UTC'): Promise<MemberStats[]> => {
       if (!userKey) return [];
       try {
         // Get party members
@@ -316,10 +316,14 @@ export function useParties(enabled: boolean = true, userKey?: string) {
         if (membersError) throw membersError;
         if (!members || members.length === 0) return [];
 
-        // Get focus sessions for the past 7 days for all members
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split("T")[0];
+        // Get focus sessions for this week (Sunday to today) for all members
+        const now = new Date();
+        const nowInTz = getDateInTimezone(now, timezone);
+        const tzDate = new Date(nowInTz + 'T12:00:00');
+        const dayOfWeek = tzDate.getDay();
+        const startDate = new Date(tzDate);
+        startDate.setDate(startDate.getDate() - dayOfWeek);
+        const startDateStr = getDateInTimezone(startDate, timezone);
 
         const userIds = members.map((m) => m.user_id);
 
@@ -327,7 +331,7 @@ export function useParties(enabled: boolean = true, userKey?: string) {
           .from("focus_sessions")
           .select("user_id, duration, date")
           .in("user_id", userIds)
-          .gte("date", sevenDaysAgoStr);
+          .gte("date", startDateStr);
 
         if (sessionsError) throw sessionsError;
 
@@ -397,7 +401,12 @@ export function useParties(enabled: boolean = true, userKey?: string) {
   );
 
   const getPartyDailySeries = useCallback(
-    async (partyId: string, days: number = 7, timezone: string = 'UTC'): Promise<PartyDailySeries> => {
+    async (
+      partyId: string,
+      mode: 'past' | 'this',
+      period: 'week' | 'month',
+      timezone: string = 'UTC'
+    ): Promise<PartyDailySeries> => {
       if (!userKey) return { labels: [], series: [] };
       try {
         const { data: members, error: membersError } = await supabase
@@ -410,14 +419,54 @@ export function useParties(enabled: boolean = true, userKey?: string) {
 
         const userIds = members.map((m) => m.user_id);
 
-        // Calculate start date in user's timezone
+        // Calculate date range based on mode and period
         const now = new Date();
         const labels: string[] = [];
-        for (let i = days - 1; i >= 0; i--) {
-          const d = new Date(now);
-          d.setDate(d.getDate() - i);
-          const dateStr = getDateInTimezone(d, timezone);
-          labels.push(dateStr);
+        let startDate: Date;
+
+        if (mode === 'past') {
+          // Rolling window: past X days
+          const days = period === 'week' ? 7 : 30;
+          for (let i = days - 1; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            const dateStr = getDateInTimezone(d, timezone);
+            labels.push(dateStr);
+          }
+          startDate = new Date(now);
+          startDate.setDate(startDate.getDate() - (days - 1));
+        } else {
+          // Calendar period: this week/month
+          if (period === 'week') {
+            // Get start of current week (Sunday)
+            const nowInTz = getDateInTimezone(now, timezone);
+            const tzDate = new Date(nowInTz + 'T12:00:00');
+            const dayOfWeek = tzDate.getDay();
+            startDate = new Date(tzDate);
+            startDate.setDate(startDate.getDate() - dayOfWeek);
+
+            // Generate labels from Sunday to today
+            const daysInWeek = dayOfWeek + 1; // Sunday (0) to today
+            for (let i = 0; i < daysInWeek; i++) {
+              const d = new Date(startDate);
+              d.setDate(d.getDate() + i);
+              const dateStr = getDateInTimezone(d, timezone);
+              labels.push(dateStr);
+            }
+          } else {
+            // Get start of current month
+            const nowInTz = getDateInTimezone(now, timezone);
+            const tzDate = new Date(nowInTz + 'T12:00:00');
+            startDate = new Date(tzDate.getFullYear(), tzDate.getMonth(), 1);
+
+            // Generate labels from start of month to today
+            const currentDate = new Date(startDate);
+            while (currentDate <= tzDate) {
+              const dateStr = getDateInTimezone(currentDate, timezone);
+              labels.push(dateStr);
+              currentDate.setDate(currentDate.getDate() + 1);
+            }
+          }
         }
 
         const startStr = labels[0];

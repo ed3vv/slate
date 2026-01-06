@@ -12,7 +12,7 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUserTimezone } from "@/lib/useUserTimezone";
 
-type ViewMode = "daily" | "total";
+type TimePeriod = "week" | "month";
 
 export default function PartyAnalyticsPage() {
   const params = useParams();
@@ -27,20 +27,38 @@ export default function PartyAnalyticsPage() {
   const router = useRouter();
   const [series, setSeries] = useState<PartyDailySeries | null>(null);
   const [loadingSeries, setLoadingSeries] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("daily");
+  const [graphPeriod, setGraphPeriod] = useState<TimePeriod>("week");
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
+
+  // Calculate time until Sunday reset
+  const getTimeUntilReset = () => {
+    const now = new Date();
+    const nextSunday = new Date(now);
+    nextSunday.setDate(now.getDate() + (7 - now.getDay()));
+    nextSunday.setHours(0, 0, 0, 0);
+
+    const diff = nextSunday.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    if (days >= 1) {
+      return `${days} day${days !== 1 ? 's' : ''} until reset`;
+    } else {
+      return `${hours} hour${hours !== 1 ? 's' : ''} until reset`;
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
       if (!partyId || !user) return;
       setLoadingSeries(true);
-      const data = await getPartyDailySeries(partyId as string, 7, timezone);
+      const data = await getPartyDailySeries(partyId as string, 'this', graphPeriod, timezone);
       setSeries(data);
       setLoadingSeries(false);
     };
     load();
-  }, [partyId, user, getPartyDailySeries, timezone]);
+  }, [partyId, user, getPartyDailySeries, timezone, graphPeriod]);
 
   useEffect(() => {
     if (!chartRef.current || !series || series.labels.length === 0) return;
@@ -60,8 +78,6 @@ export default function PartyAnalyticsPage() {
       "hsl(330, 75%, 60%)",
     ];
 
-    const isDaily = viewMode === "daily";
-
     const chartLabels = series.labels.map((d) =>
       new Date(d + "T12:00:00").toLocaleDateString("en-US", {
         month: "short",
@@ -70,15 +86,9 @@ export default function PartyAnalyticsPage() {
     );
 
     const datasets = series.series.map((s, i) => {
-      const cumulative = s.data.reduce<number[]>((acc, val, idx) => {
-        const prev = idx === 0 ? 0 : acc[idx - 1];
-        acc.push(prev + val);
-        return acc;
-      }, []);
-      const data = isDaily ? s.data : cumulative;
       return {
         label: s.label,
-        data,
+        data: s.data,
         tension: 0.35,
         borderColor: palette[i % palette.length],
         backgroundColor: palette[i % palette.length] + "80",
@@ -107,10 +117,7 @@ export default function PartyAnalyticsPage() {
           tooltip: {
             enabled: true,
             callbacks: {
-              label: (context) =>
-                isDaily
-                  ? `${context.dataset.label}: ${context.parsed.y} min`
-                  : `${context.dataset.label}: ${context.parsed.y} min`,
+              label: (context) => `${context.dataset.label}: ${context.parsed.y} min`,
             },
           },
         },
@@ -119,7 +126,7 @@ export default function PartyAnalyticsPage() {
             beginAtZero: true,
             title: {
               display: true,
-              text: isDaily ? "Minutes per day" : "Cumulative minutes (7d)",
+              text: "Minutes per day",
             },
           },
         },
@@ -131,7 +138,7 @@ export default function PartyAnalyticsPage() {
         chartInstance.current.destroy();
       }
     };
-  }, [series, viewMode]);
+  }, [series, graphPeriod]);
 
   const party = parties.find((p) => p.id === partyId);
 
@@ -150,25 +157,39 @@ export default function PartyAnalyticsPage() {
       <PartyManagement />
       <Card className="bg-card text-foreground">
         <CardHeader>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <CardTitle>
-              {party ? `${party.name} · Focus Over Time` : "Party Focus Over Time"}
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant={viewMode === "daily" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("daily")}
-              >
-                Per Day
-              </Button>
-              <Button
-                variant={viewMode === "total" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("total")}
-              >
-                Total (7d)
-              </Button>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <CardTitle>
+                  {party ? `${party.name} · This Week` : "Party Focus · This Week"}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">{getTimeUntilReset()}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">View:</span>
+                <div className="inline-flex rounded-md border border-border bg-secondary p-1">
+                  <button
+                    onClick={() => setGraphPeriod("week")}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      graphPeriod === "week"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    Week
+                  </button>
+                  <button
+                    onClick={() => setGraphPeriod("month")}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      graphPeriod === "month"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    Month
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </CardHeader>

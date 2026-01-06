@@ -9,9 +9,11 @@ import { useParties, type PartyWithMembers, type MemberStats, type MemberStatus 
 import { useAuth } from '@/lib/hooks';
 import { supabase } from '@/lib/supabaseClient';
 import { usePathname, useRouter } from 'next/navigation';
+import { useUserTimezone } from '@/lib/useUserTimezone';
 
 export function PartyManagement() {
   const { user, loading: authLoading } = useAuth(false);
+  const { timezone } = useUserTimezone();
   const {
     parties,
     loading,
@@ -116,7 +118,7 @@ export function PartyManagement() {
 
   const loadPartyStats = async (partyId: string) => {
     try {
-      const stats = await getPartyStats(partyId);
+      const stats = await getPartyStats(partyId, timezone);
       setPartyStats(prev => ({ ...prev, [partyId]: stats }));
     } catch (e) {
       console.error('Failed to load stats:', e);

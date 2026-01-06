@@ -8,11 +8,14 @@ export function useAuth(requireAuth = true) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const router = useRouter();
   const hasRedirected = useRef(false);
+  const initialLoadComplete = useRef(false);
 
   useEffect(() => {
-    // Check if this was a session-only login (remember me unchecked)
-    // If so, sign out when the page loads after browser restart
-    const checkSessionPersistence = async () => {
+    let isMounted = true;
+
+    const initAuth = async () => {
+      // Check if this was a session-only login (remember me unchecked)
+      // If so, sign out when the page loads after browser restart
       const sessionOnly = sessionStorage.getItem('sessionOnly');
       const rememberMe = localStorage.getItem('rememberMe');
 
@@ -23,15 +26,47 @@ export function useAuth(requireAuth = true) {
         if (data.session) {
           // Sign out because this was a session-only login and browser was restarted
           await supabase.auth.signOut();
+          if (isMounted) {
+            setUser(null);
+            setLoading(false);
+            initialLoadComplete.current = true;
+            if (requireAuth) {
+              router.push('/login');
+              hasRedirected.current = true;
+            }
+          }
+          return;
+        }
+      }
+
+      // Get the current session
+      const { data } = await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
+      setUser(data.session?.user ?? null);
+      initialLoadComplete.current = true;
+      setLoading(false);
+
+      // Only redirect once on initial page load
+      if (!hasRedirected.current) {
+        if (requireAuth && !data.session?.user) {
+          router.push('/login');
+          hasRedirected.current = true;
         }
       }
     };
 
-    checkSessionPersistence();
-
+    // Set up auth state change listener
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+
       setUser(session?.user ?? null);
-      setLoading(false);
+
+      // Only set loading to false after initial load is complete
+      if (initialLoadComplete.current) {
+        setLoading(false);
+      }
 
       // Only redirect on sign-in/sign-out events, not on token refresh
       if (event === 'SIGNED_IN' && !requireAuth) {
@@ -43,22 +78,11 @@ export function useAuth(requireAuth = true) {
       }
     });
 
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-
-      // Only redirect once on initial page load
-      if (!hasRedirected.current) {
-        if (requireAuth && !data.session?.user) {
-          router.push('/login');
-          hasRedirected.current = true;
-        }
-        // Removed the redirect for !requireAuth && user case
-        // This was causing unwanted redirects on dashboard pages
-      }
-    });
+    // Initialize auth
+    initAuth();
 
     return () => {
+      isMounted = false;
       listener?.subscription.unsubscribe();
     };
   }, [requireAuth, router]);

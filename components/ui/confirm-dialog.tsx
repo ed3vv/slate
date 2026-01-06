@@ -21,13 +21,13 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({ show, title, message, onConfirm, onCancel }: ConfirmDialogProps) {
   return (
     <AlertDialog open={show} onOpenChange={onCancel}>
-      <AlertDialogContent className="bg-primary ">
+      <AlertDialogContent className="bg-card border-border">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-foreground">{title}</AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground">{message}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel} className="bg-secondary hover:bg-secondary/80">Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={onCancel} className="bg-secondary hover:bg-secondary/80 text-foreground">Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700 text-white">
             Delete
           </AlertDialogAction>
