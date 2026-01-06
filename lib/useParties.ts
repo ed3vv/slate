@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
+import { getDateInTimezone } from "./timezones";
 
 
 
@@ -396,7 +397,7 @@ export function useParties(enabled: boolean = true, userKey?: string) {
   );
 
   const getPartyDailySeries = useCallback(
-    async (partyId: string, days: number = 7): Promise<PartyDailySeries> => {
+    async (partyId: string, days: number = 7, timezone: string = 'UTC'): Promise<PartyDailySeries> => {
       if (!userKey) return { labels: [], series: [] };
       try {
         const { data: members, error: membersError } = await supabase
@@ -409,9 +410,17 @@ export function useParties(enabled: boolean = true, userKey?: string) {
 
         const userIds = members.map((m) => m.user_id);
 
-        const start = new Date();
-        start.setDate(start.getDate() - (days - 1));
-        const startStr = start.toISOString().split("T")[0];
+        // Calculate start date in user's timezone
+        const now = new Date();
+        const labels: string[] = [];
+        for (let i = days - 1; i >= 0; i--) {
+          const d = new Date(now);
+          d.setDate(d.getDate() - i);
+          const dateStr = getDateInTimezone(d, timezone);
+          labels.push(dateStr);
+        }
+
+        const startStr = labels[0];
 
         const { data: sessions, error: sessionsError } = await supabase
           .from("focus_sessions")
@@ -420,13 +429,6 @@ export function useParties(enabled: boolean = true, userKey?: string) {
           .gte("date", startStr);
 
         if (sessionsError) throw sessionsError;
-
-        const labels: string[] = [];
-        for (let i = 0; i < days; i++) {
-          const d = new Date(start);
-          d.setDate(start.getDate() + i);
-          labels.push(d.toISOString().split("T")[0]);
-        }
 
         const series = members.map((member) => {
           const userSessions = (sessions || []).filter(

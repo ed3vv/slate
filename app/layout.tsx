@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 import type { Metadata } from 'next';
+import { TimerProvider } from '@/lib/TimerContext';
 
 export const metadata: Metadata = {
   title: 'Slate',
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        {children}
+        <TimerProvider>
+          {children}
+        </TimerProvider>
         <Analytics />
       </body>
     </html>

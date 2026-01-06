@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { DateUtils } from "./dateUtils";
+import { useUserTimezone } from "./useUserTimezone";
 
 export type DailyTodo = {
   id: string;
@@ -27,13 +28,14 @@ export function useDailyTodos(enabled: boolean = true, userKey?: string) {
   const [todos, setTodos] = useState<DailyTodo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { timezone } = useUserTimezone();
 
   const refresh = useCallback(async () => {
     if (!userKey) return;
     setLoading(true);
     setError(null);
     try {
-      const today = DateUtils.today();
+      const today = DateUtils.today(timezone);
       const { data, error: err } = await supabase
         .from("daily_todos")
         .select("id,title,done,date")
@@ -51,7 +53,7 @@ export function useDailyTodos(enabled: boolean = true, userKey?: string) {
     } finally {
       setLoading(false);
     }
-  }, [userKey]);
+  }, [userKey, timezone]);
 
   useEffect(() => {
     if (!enabled || !userKey) {
@@ -64,7 +66,7 @@ export function useDailyTodos(enabled: boolean = true, userKey?: string) {
 
   const addTodo = useCallback(async (title: string) => {
     if (!userKey) return;
-    const today = DateUtils.today();
+    const today = DateUtils.today(timezone);
     const newTodo: DailyTodo = {
       id: crypto.randomUUID(),
       title,
@@ -90,7 +92,7 @@ export function useDailyTodos(enabled: boolean = true, userKey?: string) {
       setError(e?.message || JSON.stringify(e));
       setTodos(prev => prev.filter(t => t.id !== newTodo.id));
     }
-  }, [userKey]);
+  }, [userKey, timezone]);
 
   const toggleTodo = useCallback(async (todoId: string) => {
     if (!userKey) return;

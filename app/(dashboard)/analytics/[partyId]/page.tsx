@@ -10,6 +10,7 @@ import { PartyManagement } from "@/components/ui/party-management";
 import { Chart } from "chart.js/auto";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useUserTimezone } from "@/lib/useUserTimezone";
 
 type ViewMode = "daily" | "total";
 
@@ -22,6 +23,7 @@ export default function PartyAnalyticsPage() {
 
   const { user, loading: authLoading } = useAuth(true);
   const { parties, getPartyDailySeries } = useParties(!authLoading && !!user, user?.id);
+  const { timezone } = useUserTimezone();
   const router = useRouter();
   const [series, setSeries] = useState<PartyDailySeries | null>(null);
   const [loadingSeries, setLoadingSeries] = useState(false);
@@ -33,12 +35,12 @@ export default function PartyAnalyticsPage() {
     const load = async () => {
       if (!partyId || !user) return;
       setLoadingSeries(true);
-      const data = await getPartyDailySeries(partyId as string, 7);
+      const data = await getPartyDailySeries(partyId as string, 7, timezone);
       setSeries(data);
       setLoadingSeries(false);
     };
     load();
-  }, [partyId, user, getPartyDailySeries]);
+  }, [partyId, user, getPartyDailySeries, timezone]);
 
   useEffect(() => {
     if (!chartRef.current || !series || series.labels.length === 0) return;

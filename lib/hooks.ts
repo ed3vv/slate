@@ -10,6 +10,25 @@ export function useAuth(requireAuth = true) {
   const hasRedirected = useRef(false);
 
   useEffect(() => {
+    // Check if this was a session-only login (remember me unchecked)
+    // If so, sign out when the page loads after browser restart
+    const checkSessionPersistence = async () => {
+      const sessionOnly = sessionStorage.getItem('sessionOnly');
+      const rememberMe = localStorage.getItem('rememberMe');
+
+      // If sessionOnly flag is not in sessionStorage but we have a session,
+      // it means the browser was restarted and this was a "don't remember me" session
+      if (!sessionOnly && !rememberMe) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          // Sign out because this was a session-only login and browser was restarted
+          await supabase.auth.signOut();
+        }
+      }
+    };
+
+    checkSessionPersistence();
+
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);

@@ -6,6 +6,7 @@ import { supabase } from './supabaseClient';
 export type UserWithProfile = {
   user: SupabaseUser;
   username: string | null;
+  timezone?: string | null;
 };
 
 export function useAuthWithProfile(requireAuth = true) {
@@ -17,13 +18,14 @@ export function useAuthWithProfile(requireAuth = true) {
   const fetchProfile = async (user: SupabaseUser) => {
     const { data: profileData } = await supabase
       .from('user_profiles')
-      .select('username')
+      .select('username, timezone')
       .eq('user_id', user.id)
       .single();
 
     setData({
       user,
       username: profileData?.username || null,
+      timezone: profileData?.timezone || null,
     });
   };
 
@@ -68,5 +70,12 @@ export function useAuthWithProfile(requireAuth = true) {
     };
   }, [requireAuth, router]);
 
-  return { data, loading };
+  const refetch = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session?.user) {
+      await fetchProfile(sessionData.session.user);
+    }
+  };
+
+  return { data, loading, refetch };
 }

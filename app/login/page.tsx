@@ -47,13 +47,13 @@ export default function SignIn() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // Note: Supabase automatically persists sessions in localStorage by default
-        // If "remember me" is unchecked, we'll sign out when the tab/window closes
-        if (!rememberMe) {
-          // Store a flag to sign out on tab close
-          sessionStorage.setItem('autoSignOut', 'true');
+        // Store remember me preference
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+          sessionStorage.removeItem('sessionOnly');
         } else {
-          sessionStorage.removeItem('autoSignOut');
+          localStorage.removeItem('rememberMe');
+          sessionStorage.setItem('sessionOnly', 'true');
         }
       } else {
         // Check if username is already taken

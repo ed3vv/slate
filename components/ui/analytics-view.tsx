@@ -188,7 +188,7 @@ export function AnalyticsView({ focusSessions, onDeleteSession }: AnalyticsViewP
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {focusSessions.slice(-10).reverse().map((session) => (
+            {focusSessions.slice(0, 10).map((session) => (
               <div key={session.timestamp} className="group flex items-center justify-between p-3 rounded-md bg-secondary">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <Clock className="flex-shrink-0 h-5 w-5 text-foreground" />

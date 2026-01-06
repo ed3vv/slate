@@ -7,7 +7,6 @@ import { useTaskStats } from "@/lib/useTaskStats";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { FocusTimer } from "@/components/ui/focus-timer";
 import { DailyTodos } from "@/components/ui/daily-todos";
-import { supabase } from "@/lib/supabaseClient";
 import { usePathname } from "next/navigation";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -22,18 +21,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       localStorage.setItem('lastVisitedRoute', pathname);
     }
   }, [pathname]);
-
-  // Handle auto sign-out when "remember me" was unchecked
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (sessionStorage.getItem('autoSignOut') === 'true') {
-        supabase.auth.signOut();
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
 
   return (
     <div className="mb-60 min-h-screen bg-background p-4 md:p-8">

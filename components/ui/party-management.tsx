@@ -180,21 +180,6 @@ export function PartyManagement() {
     };
   }, [parties]);
 
-  // Refresh party stats every minute to include newly saved session time
-  useEffect(() => {
-    if (parties.length === 0) return;
-
-    const interval = setInterval(() => {
-      console.log('[Party Stats] Minutely refresh triggered at', new Date().toLocaleTimeString());
-      parties.forEach(party => {
-        console.log('[Party Stats] Refreshing stats for party:', party.name);
-        loadPartyStats(party.id);
-      });
-    }, 60000); // 60 seconds
-
-    return () => clearInterval(interval);
-  }, [parties]);
-
   const formatMinutes = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
@@ -436,6 +421,23 @@ export function PartyManagement() {
                             const savedPercentage = (stat.total_minutes / maxMinutes) * 100;
                             const activePercentage = (currentMinutes / maxMinutes) * 100;
 
+                            // Debug logging for all users
+                            if (isCurrentUser) {
+                              console.log('[Party Bar Debug - Current User]', {
+                                userId: stat.user_id,
+                                isCurrentUser,
+                                status: status,
+                                isActive,
+                                currentSeconds,
+                                currentMinutes,
+                                maxMinutes,
+                                savedPercentage,
+                                activePercentage,
+                                barWidth: `${Math.min(activePercentage, 100 - savedPercentage)}%`,
+                                willShowStriped: isActive && currentSeconds > 0
+                              });
+                            }
+
                             return (
                               <div key={stat.user_id} className="space-y-1">
                                 <div className="flex items-center justify-between text-sm">
@@ -488,9 +490,7 @@ export function PartyManagement() {
                                   {/* Active session bar - striped extension showing current active session */}
                                   {isActive && currentSeconds > 0 && (
                                     <div
-                                      className={`absolute top-0 h-full transition-all duration-300 ${
-                                        isCurrentUser ? 'bg-primary' : 'bg-primary/60'
-                                      } bg-striped`}
+                                      className={`absolute top-0 h-full transition-all duration-300 bg-secondary-500 bg-striped`}
                                       style={{
                                         left: `${savedPercentage}%`,
                                         width: `${Math.min(activePercentage, 100 - savedPercentage)}%`
