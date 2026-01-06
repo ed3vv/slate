@@ -30,7 +30,7 @@ export function DailyTodos() {
   return (
     <Card className="mt-6 bg-card text-foreground shadow-md">
       <CardHeader>
-        <CardTitle className="text-foreground">Daily Todo List</CardTitle>
+        <CardTitle className="text-foreground">Todo List</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex gap-2 mb-4">

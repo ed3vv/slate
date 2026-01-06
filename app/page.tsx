@@ -112,7 +112,7 @@ export default function HomePage() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <CheckSquare className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground">Daily Todos</h3>
+                <h3 className="text-xl font-semibold text-foreground">Todo lists</h3>
               </div>
               <p className="text-muted-foreground">
                 Quick daily task list to keep track of immediate priorities and stay productive.

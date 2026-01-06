@@ -35,12 +35,11 @@ export function useDailyTodos(enabled: boolean = true, userKey?: string) {
     setLoading(true);
     setError(null);
     try {
-      const today = DateUtils.today(timezone);
       const { data, error: err } = await supabase
         .from("daily_todos")
         .select("id,title,done,date")
-        .eq("date", today)
-        .order("created_at", { ascending: true });
+        .eq("user_id", userKey)
+        .order("created_at", { ascending: false });
 
       if (err) {
         console.error('Daily todos query error:', err);
