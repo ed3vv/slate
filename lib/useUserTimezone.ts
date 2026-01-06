@@ -9,29 +9,31 @@ export function useUserTimezone() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.id) {
-      supabase
-        .from('user_profiles')
-        .select('timezone')
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data }) => {
+    const fetchTimezone = async () => {
+      if (user?.id) {
+        try {
+          const { data } = await supabase
+            .from('user_profiles')
+            .select('timezone')
+            .eq('user_id', user.id)
+            .single();
+
           if (data?.timezone) {
             setTimezone(data.timezone);
           } else {
             // Fallback to browser timezone if not set
             setTimezone(getBrowserTimezone());
           }
-          setLoading(false);
-        })
-        .catch(() => {
+        } catch {
           setTimezone(getBrowserTimezone());
-          setLoading(false);
-        });
-    } else {
-      setTimezone(getBrowserTimezone());
+        }
+      } else {
+        setTimezone(getBrowserTimezone());
+      }
       setLoading(false);
-    }
+    };
+
+    fetchTimezone();
   }, [user?.id]);
 
   return { timezone, loading };
