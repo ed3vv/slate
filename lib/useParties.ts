@@ -400,6 +400,38 @@ export function useParties(enabled: boolean = true, userKey?: string) {
     [userKey]
   );
 
+  const getPartyOwnerTimezone = useCallback(
+    async (partyId: string): Promise<string> => {
+      if (!userKey) return 'UTC';
+      try {
+        // Get party owner
+        const { data: party, error: partyError } = await supabase
+          .from("parties")
+          .select("created_by")
+          .eq("id", partyId)
+          .single();
+
+        if (partyError) throw partyError;
+        if (!party) return 'UTC';
+
+        // Get owner's timezone
+        const { data: profile, error: profileError } = await supabase
+          .from("user_profiles")
+          .select("timezone")
+          .eq("user_id", party.created_by)
+          .single();
+
+        if (profileError) throw profileError;
+
+        return profile?.timezone || 'UTC';
+      } catch (e: any) {
+        console.error("Get party owner timezone error:", e);
+        return 'UTC';
+      }
+    },
+    [userKey]
+  );
+
   const getPartyDailySeries = useCallback(
     async (
       partyId: string,
@@ -519,6 +551,7 @@ export function useParties(enabled: boolean = true, userKey?: string) {
     deleteParty,
     getPartyStats,
     getPartyStatuses,
+    getPartyOwnerTimezone,
     getPartyDailySeries,
   };
 }

@@ -22,43 +22,36 @@ export default function PartyAnalyticsPage() {
   }, [params]);
 
   const { user, loading: authLoading } = useAuth(true);
-  const { parties, getPartyDailySeries } = useParties(!authLoading && !!user, user?.id);
+  const { parties, getPartyDailySeries, getPartyOwnerTimezone } = useParties(!authLoading && !!user, user?.id);
   const { timezone } = useUserTimezone();
   const router = useRouter();
   const [series, setSeries] = useState<PartyDailySeries | null>(null);
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [graphPeriod, setGraphPeriod] = useState<TimePeriod>("week");
+  const [ownerTimezone, setOwnerTimezone] = useState<string>('UTC');
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
 
-  // Calculate time until Sunday reset
-  const getTimeUntilReset = () => {
-    const now = new Date();
-    const nextSunday = new Date(now);
-    nextSunday.setDate(now.getDate() + (7 - now.getDay()));
-    nextSunday.setHours(0, 0, 0, 0);
-
-    const diff = nextSunday.getTime() - now.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-    if (days >= 1) {
-      return `${days} day${days !== 1 ? 's' : ''} until reset`;
-    } else {
-      return `${hours} hour${hours !== 1 ? 's' : ''} until reset`;
-    }
-  };
+  // Fetch party owner's timezone
+  useEffect(() => {
+    const fetchOwnerTimezone = async () => {
+      if (!partyId) return;
+      const tz = await getPartyOwnerTimezone(partyId as string);
+      setOwnerTimezone(tz);
+    };
+    fetchOwnerTimezone();
+  }, [partyId, getPartyOwnerTimezone]);
 
   useEffect(() => {
     const load = async () => {
-      if (!partyId || !user) return;
+      if (!partyId || !user || !ownerTimezone) return;
       setLoadingSeries(true);
-      const data = await getPartyDailySeries(partyId as string, 'this', graphPeriod, timezone);
+      const data = await getPartyDailySeries(partyId as string, 'this', graphPeriod, ownerTimezone);
       setSeries(data);
       setLoadingSeries(false);
     };
     load();
-  }, [partyId, user, getPartyDailySeries, timezone, graphPeriod]);
+  }, [partyId, user, getPartyDailySeries, ownerTimezone, graphPeriod]);
 
   useEffect(() => {
     if (!chartRef.current || !series || series.labels.length === 0) return;
@@ -159,12 +152,9 @@ export default function PartyAnalyticsPage() {
         <CardHeader>
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <CardTitle>
-                  {party ? `${party.name} · This Week` : "Party Focus · This Week"}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">{getTimeUntilReset()}</p>
-              </div>
+              <CardTitle>
+                {party ? `${party.name} · Focus Over Time` : "Party Focus Over Time"}
+              </CardTitle>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">View:</span>
                 <div className="inline-flex rounded-md border border-border bg-secondary p-1">

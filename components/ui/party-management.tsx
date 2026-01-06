@@ -35,6 +35,7 @@ export function PartyManagement() {
   const [editingParty, setEditingParty] = useState<{ [key: string]: boolean }>({});
   const [editedName, setEditedName] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState('');
+  const [ownerTimezones, setOwnerTimezones] = useState<{ [key: string]: string }>({});
   const pathname = usePathname();
   const router = useRouter();
 
@@ -134,11 +135,77 @@ export function PartyManagement() {
     }
   };
 
+  const loadOwnerTimezone = async (partyId: string, ownerId: string) => {
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('timezone')
+        .eq('user_id', ownerId)
+        .single();
+
+      if (data?.timezone) {
+        setOwnerTimezones(prev => ({ ...prev, [partyId]: data.timezone }));
+      }
+    } catch (e) {
+      console.error('Failed to load owner timezone:', e);
+    }
+  };
+
+  const getTimeUntilReset = (ownerId: string) => {
+    // Find the party with this owner
+    const party = parties.find(p => p.created_by === ownerId);
+    if (!party) return '';
+
+    const ownerTz = ownerTimezones[party.id] || timezone;
+    const now = new Date();
+
+    // Get current date/time in owner's timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: ownerTz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+
+    const parts = formatter.formatToParts(now);
+    const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0';
+
+    const year = parseInt(getPart('year'));
+    const month = parseInt(getPart('month')) - 1;
+    const day = parseInt(getPart('day'));
+    const hour = parseInt(getPart('hour'));
+    const minute = parseInt(getPart('minute'));
+    const second = parseInt(getPart('second'));
+
+    // Create a date representing "now" in owner's timezone
+    const nowInTz = new Date(year, month, day, hour, minute, second);
+    const dayOfWeek = nowInTz.getDay();
+
+    // Calculate next Sunday at midnight in owner's timezone
+    const daysUntilSunday = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
+    const nextSunday = new Date(year, month, day + daysUntilSunday, 0, 0, 0);
+
+    const diff = nextSunday.getTime() - nowInTz.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    if (days >= 1) {
+      return `${days} day${days !== 1 ? 's' : ''} until reset`;
+    } else {
+      return `${hours} hour${hours !== 1 ? 's' : ''} until reset`;
+    }
+  };
+
   // Load stats for all parties on mount and when parties change
   useEffect(() => {
     parties.forEach((party) => {
       loadPartyStats(party.id);
       loadPartyStatuses(party.id);
+      loadOwnerTimezone(party.id, party.created_by);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parties.length]);
@@ -337,19 +404,23 @@ export function PartyManagement() {
                             <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
                               {party.name}
                               {isPartyCreator(party) && (
-                                <span title="You created this party">
+                                <span title="party owner">
                                   <Crown className="h-4 w-4 text-yellow-500" />
                                 </span>
                               )}
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                              {party.members.length} {party.members.length === 1 ? 'member' : 'members'}
+                              {party.members.length} {party.members.length === 1 ? 'member' : 'members'} · This Week
                             </p>
                           </>
                         )}
                       </div>
                       {onPartyPage && (
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100">
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100">
+
+                          <p className="flex text-xs mr-4 text-muted-foreground">
+                            {getTimeUntilReset(party.created_by)}
+                          </p>
                           {isPartyCreator(party) && !isEditing && (
                             <Button
                               onClick={(e) => { e.stopPropagation(); toggleEditMode(party.id, party.name); }}
