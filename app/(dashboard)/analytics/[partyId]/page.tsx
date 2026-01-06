@@ -22,36 +22,25 @@ export default function PartyAnalyticsPage() {
   }, [params]);
 
   const { user, loading: authLoading } = useAuth(true);
-  const { parties, getPartyDailySeries, getPartyOwnerTimezone } = useParties(!authLoading && !!user, user?.id);
+  const { parties, getPartyDailySeries } = useParties(!authLoading && !!user, user?.id);
   const { timezone } = useUserTimezone();
   const router = useRouter();
   const [series, setSeries] = useState<PartyDailySeries | null>(null);
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [graphPeriod, setGraphPeriod] = useState<TimePeriod>("week");
-  const [ownerTimezone, setOwnerTimezone] = useState<string>('UTC');
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
 
-  // Fetch party owner's timezone
-  useEffect(() => {
-    const fetchOwnerTimezone = async () => {
-      if (!partyId) return;
-      const tz = await getPartyOwnerTimezone(partyId as string);
-      setOwnerTimezone(tz);
-    };
-    fetchOwnerTimezone();
-  }, [partyId, getPartyOwnerTimezone]);
-
   useEffect(() => {
     const load = async () => {
-      if (!partyId || !user || !ownerTimezone) return;
+      if (!partyId || !user || !timezone) return;
       setLoadingSeries(true);
-      const data = await getPartyDailySeries(partyId as string, 'this', graphPeriod, ownerTimezone);
+      const data = await getPartyDailySeries(partyId as string, 'this', graphPeriod, timezone);
       setSeries(data);
       setLoadingSeries(false);
     };
     load();
-  }, [partyId, user, getPartyDailySeries, ownerTimezone, graphPeriod]);
+  }, [partyId, user, getPartyDailySeries, timezone, graphPeriod]);
 
   useEffect(() => {
     if (!chartRef.current || !series || series.labels.length === 0) return;

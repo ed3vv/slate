@@ -555,18 +555,22 @@ export function PartyManagement() {
                                 <div className="h-3 bg-secondary rounded-full overflow-hidden relative">
                                   {/* Base bar - 7 day saved total */}
                                   <div
-                                    className={`h-full transition-all duration-300 ${
-                                      isCurrentUser ? 'bg-primary' : 'bg-primary/60'
-                                    }`}
-                                    style={{ width: `${savedPercentage}%` }}
+                                    className={`h-full transition-all duration-300`}
+                                    style={{
+                                      width: `${savedPercentage}%`,
+                                      backgroundColor: isActive
+                                        ? (isCurrentUser ? 'rgba(34, 197, 94, 0.9)' : 'rgba(34, 197, 94, 0.5)')
+                                        : (isCurrentUser ? 'hsl(var(--primary))' : 'hsl(var(--primary) / 0.6)')
+                                    }}
                                   />
                                   {/* Active session bar - striped extension showing current active session */}
                                   {isActive && currentSeconds > 0 && (
                                     <div
-                                      className={`absolute top-0 h-full transition-all duration-300 bg-secondary-500 bg-striped`}
+                                      className={`absolute top-0 h-full transition-all duration-300 bg-striped`}
                                       style={{
                                         left: `${savedPercentage}%`,
-                                        width: `${Math.min(activePercentage, 100 - savedPercentage)}%`
+                                        width: `${Math.min(activePercentage, 100 - savedPercentage)}%`,
+                                        backgroundColor: isCurrentUser ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.25)'
                                       }}
                                     />
                                   )}

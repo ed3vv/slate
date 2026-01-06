@@ -329,7 +329,7 @@ export function useParties(enabled: boolean = true, userKey?: string) {
 
         const { data: sessions, error: sessionsError } = await supabase
           .from("focus_sessions")
-          .select("user_id, duration, date")
+          .select("user_id, duration, date, timestamp")
           .in("user_id", userIds)
           .gte("date", startDateStr);
 
@@ -340,7 +340,18 @@ export function useParties(enabled: boolean = true, userKey?: string) {
           const userSessions = (sessions || []).filter(
             (s) => s.user_id === member.user_id
           );
-          const totalSeconds = userSessions.reduce(
+
+          // Filter sessions that fall within this week in the viewer's timezone
+          const thisWeekSessions = userSessions.filter((session) => {
+            if (session.timestamp) {
+              const sessionDate = getDateInTimezone(new Date(session.timestamp), timezone);
+              return sessionDate >= startDateStr;
+            }
+            // Fallback to date field if timestamp is missing
+            return session.date >= startDateStr;
+          });
+
+          const totalSeconds = thisWeekSessions.reduce(
             (sum, session) => sum + (session.duration || 0),
             0
           );
@@ -505,7 +516,7 @@ export function useParties(enabled: boolean = true, userKey?: string) {
 
         const { data: sessions, error: sessionsError } = await supabase
           .from("focus_sessions")
-          .select("user_id, duration, date")
+          .select("user_id, duration, date, timestamp")
           .in("user_id", userIds)
           .gte("date", startStr);
 
@@ -517,7 +528,15 @@ export function useParties(enabled: boolean = true, userKey?: string) {
           );
           const dailyTotals = labels.map((label) => {
             const totalSeconds = userSessions
-              .filter((s) => s.date === label)
+              .filter((s) => {
+                // Convert session timestamp to viewer's timezone
+                if (s.timestamp) {
+                  const sessionDate = getDateInTimezone(new Date(s.timestamp), timezone);
+                  return sessionDate === label;
+                }
+                // Fallback to date field if timestamp is missing
+                return s.date === label;
+              })
               .reduce((sum, s) => sum + (s.duration || 0), 0);
             return Math.round(totalSeconds / 60);
           });

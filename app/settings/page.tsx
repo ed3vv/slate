@@ -83,7 +83,7 @@ export default function SettingsPage() {
             {/* Timezone */}
             <div className="flex-1 p-4 bg-card rounded-lg border">
               <h2 className="text-lg font-medium text-foreground mb-3">Timezone</h2>
-              <p className="text-sm text-muted-foreground mb-3">Select your timezone for accurate time displays</p>
+              <p className="text-sm text-muted-foreground mb-3">Select your timezone</p>
               <Select value={timezone} onValueChange={handleTimezoneChange}>
                 <SelectTrigger className="w-full bg-background">
                   <SelectValue placeholder="Select timezone" />
