@@ -8,11 +8,12 @@ import { useAuth } from "@/lib/hooks";
 import { useParties, type PartyDailySeries } from "@/lib/useParties";
 import { PartyManagement } from "@/components/ui/party-management";
 import { Chart } from "chart.js/auto";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BarChart3, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUserTimezone } from "@/lib/useUserTimezone";
 
 type TimePeriod = "week" | "month";
+type ViewMode = "total" | "daily";
 
 export default function PartyAnalyticsPage() {
   const params = useParams();
@@ -28,6 +29,7 @@ export default function PartyAnalyticsPage() {
   const [series, setSeries] = useState<PartyDailySeries | null>(null);
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [graphPeriod, setGraphPeriod] = useState<TimePeriod>("week");
+  const [viewMode, setViewMode] = useState<ViewMode>("daily");
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
 
@@ -35,12 +37,13 @@ export default function PartyAnalyticsPage() {
     const load = async () => {
       if (!partyId || !user || !timezone) return;
       setLoadingSeries(true);
+      // Both total and daily use 'this' mode (calendar-based periods)
       const data = await getPartyDailySeries(partyId as string, 'this', graphPeriod, timezone);
       setSeries(data);
       setLoadingSeries(false);
     };
     load();
-  }, [partyId, user, getPartyDailySeries, timezone, graphPeriod]);
+  }, [partyId, user, getPartyDailySeries, timezone, graphPeriod, viewMode]);
 
   useEffect(() => {
     if (!chartRef.current || !series || series.labels.length === 0) return;
@@ -60,67 +63,133 @@ export default function PartyAnalyticsPage() {
       "hsl(330, 75%, 60%)",
     ];
 
-    const chartLabels = series.labels.map((d) =>
-      new Date(d + "T12:00:00").toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      })
-    );
+    if (viewMode === "total") {
+      // Total view: Show cumulative line graph for each member
+      const chartLabels = series.labels.map((d) =>
+        new Date(d + "T12:00:00").toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })
+      );
 
-    const datasets = series.series.map((s, i) => {
-      return {
-        label: s.label,
-        data: s.data,
-        tension: 0.35,
-        borderColor: palette[i % palette.length],
-        backgroundColor: palette[i % palette.length] + "80",
-        fill: false,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        pointHoverBorderWidth: 2,
-        pointHoverBackgroundColor: palette[i % palette.length],
-        pointHoverBorderColor: "#fff",
-      };
-    });
+      // Create cumulative datasets
+      const datasets = series.series.map((s, i) => {
+        let cumulative = 0;
+        const cumulativeData = s.data.map((val) => {
+          cumulative += val;
+          return cumulative;
+        });
 
-    chartInstance.current = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: chartLabels,
-        datasets,
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "bottom",
+        return {
+          label: s.label,
+          data: cumulativeData,
+          tension: 0.35,
+          borderColor: palette[i % palette.length],
+          backgroundColor: palette[i % palette.length] + "80",
+          fill: false,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointHoverBorderWidth: 2,
+          pointHoverBackgroundColor: palette[i % palette.length],
+          pointHoverBorderColor: "#fff",
+        };
+      });
+
+      chartInstance.current = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: chartLabels,
+          datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+            },
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                label: (context) => `${context.dataset.label}: ${context.parsed.y} min (total)`,
+              },
+            },
           },
-          tooltip: {
-            enabled: true,
-            callbacks: {
-              label: (context) => `${context.dataset.label}: ${context.parsed.y} min`,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: "Cumulative Minutes",
+              },
             },
           },
         },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: "Minutes per day",
+      });
+    } else {
+      // Daily view: Show line chart with day-by-day breakdown
+      const chartLabels = series.labels.map((d) =>
+        new Date(d + "T12:00:00").toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })
+      );
+
+      const datasets = series.series.map((s, i) => {
+        return {
+          label: s.label,
+          data: s.data,
+          tension: 0.35,
+          borderColor: palette[i % palette.length],
+          backgroundColor: palette[i % palette.length] + "80",
+          fill: false,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointHoverBorderWidth: 2,
+          pointHoverBackgroundColor: palette[i % palette.length],
+          pointHoverBorderColor: "#fff",
+        };
+      });
+
+      chartInstance.current = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: chartLabels,
+          datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+            },
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                label: (context) => `${context.dataset.label}: ${context.parsed.y} min`,
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: "Minutes per day",
+              },
             },
           },
         },
-      },
-    });
+      });
+    }
 
     return () => {
       if (chartInstance.current) {
         chartInstance.current.destroy();
       }
     };
-  }, [series, graphPeriod]);
+  }, [series, graphPeriod, viewMode]);
 
   const party = parties.find((p) => p.id === partyId);
 
@@ -144,29 +213,58 @@ export default function PartyAnalyticsPage() {
               <CardTitle>
                 {party ? `${party.name} · Focus Over Time` : "Party Focus Over Time"}
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">View:</span>
-                <div className="inline-flex rounded-md border border-border bg-secondary p-1">
-                  <button
-                    onClick={() => setGraphPeriod("week")}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${
-                      graphPeriod === "week"
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    Week
-                  </button>
-                  <button
-                    onClick={() => setGraphPeriod("month")}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${
-                      graphPeriod === "month"
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    Month
-                  </button>
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Mode:</span>
+                  <div className="inline-flex rounded-md border border-border bg-secondary p-1">
+                    <button
+                      onClick={() => setViewMode("total")}
+                      className={`px-3 py-1 text-sm rounded transition-colors flex items-center gap-1.5 ${
+                        viewMode === "total"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      <BarChart3 className="h-3.5 w-3.5" />
+                      Total
+                    </button>
+                    <button
+                      onClick={() => setViewMode("daily")}
+                      className={`px-3 py-1 text-sm rounded transition-colors flex items-center gap-1.5 ${
+                        viewMode === "daily"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      Daily
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Period:</span>
+                  <div className="inline-flex rounded-md border border-border bg-secondary p-1">
+                    <button
+                      onClick={() => setGraphPeriod("week")}
+                      className={`px-3 py-1 text-sm rounded transition-colors ${
+                        graphPeriod === "week"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      Week
+                    </button>
+                    <button
+                      onClick={() => setGraphPeriod("month")}
+                      className={`px-3 py-1 text-sm rounded transition-colors ${
+                        graphPeriod === "month"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      Month
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

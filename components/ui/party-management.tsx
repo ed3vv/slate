@@ -25,6 +25,7 @@ export function PartyManagement() {
     deleteParty,
     getPartyStats,
     getPartyStatuses,
+    getPartyOwnerTimezone,
   } = useParties(!authLoading && !!user, user?.id);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -477,7 +478,7 @@ export function PartyManagement() {
                       </div>
                     )}
 
-                    {/* Party Stats - Always visible as bars */}
+                    {/* Party Stats - Always show bars */}
                     {stats.length > 0 && (
                       <div>
                         <h4 className="text-sm font-medium mb-3 text-foreground">
