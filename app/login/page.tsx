@@ -3,9 +3,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks';
 import { supabase } from '@/lib/supabaseClient';
 import { LoginCharacters } from '@/components/ui/login-characters';
+import { useRouter } from 'next/navigation';
 
 export default function SignIn() {
-  const { loading } = useAuth(false);
+  const { user, loading } = useAuth(false);
+  const router = useRouter();
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [email, setEmail] = useState('');
@@ -16,6 +18,13 @@ export default function SignIn() {
   const [focusedField, setFocusedField] = useState<'email' | 'password' | 'username' | null>(null);
   const [isSurprised, setIsSurprised] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // Redirect if user is already authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/subjects');
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

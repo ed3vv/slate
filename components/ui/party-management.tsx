@@ -491,6 +491,7 @@ export function PartyManagement() {
                             const isActive = status?.is_active || false;
                             const currentSeconds = status?.current_seconds || 0;
                             const currentMinutes = currentSeconds / 60;
+                            const isPaused = !isActive && currentSeconds > 0; // Paused state: timer exists but not running
 
                             const savedPercentage = (stat.total_minutes / maxMinutes) * 100;
                             const activePercentage = (currentMinutes / maxMinutes) * 100;
@@ -502,6 +503,7 @@ export function PartyManagement() {
                                 isCurrentUser,
                                 status: status,
                                 isActive,
+                                isPaused,
                                 currentSeconds,
                                 currentMinutes,
                                 maxMinutes,
@@ -559,19 +561,23 @@ export function PartyManagement() {
                                     className={`h-full transition-all duration-300`}
                                     style={{
                                       width: `${savedPercentage}%`,
-                                      backgroundColor: isActive
-                                        ? (isCurrentUser ? 'rgba(34, 197, 94, 0.9)' : 'rgba(34, 197, 94, 0.5)')
-                                        : (isCurrentUser ? 'hsl(var(--primary))' : 'hsl(var(--primary) / 0.6)')
+                                      backgroundColor: isPaused
+                                        ? (isCurrentUser ? 'rgba(234, 179, 8, 0.9)' : 'rgba(234, 179, 8, 0.5)') // Yellow for paused
+                                        : isActive
+                                        ? (isCurrentUser ? 'rgba(34, 197, 94, 0.9)' : 'rgba(34, 197, 94, 0.5)') // Green for active
+                                        : (isCurrentUser ? 'hsl(var(--primary))' : 'hsl(var(--primary) / 0.6)') // Primary for inactive
                                     }}
                                   />
-                                  {/* Active session bar - striped extension showing current active session */}
-                                  {isActive && currentSeconds > 0 && (
+                                  {/* Active/Paused session bar - striped extension showing current session */}
+                                  {currentSeconds > 0 && (
                                     <div
                                       className={`absolute top-0 h-full transition-all duration-300 bg-striped`}
                                       style={{
                                         left: `${savedPercentage}%`,
                                         width: `${Math.min(activePercentage, 100 - savedPercentage)}%`,
-                                        backgroundColor: isCurrentUser ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.25)'
+                                        backgroundColor: isPaused
+                                          ? (isCurrentUser ? 'rgba(234, 179, 8, 0.4)' : 'rgba(234, 179, 8, 0.25)') // Yellow striped for paused
+                                          : (isCurrentUser ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.25)') // Green striped for active
                                       }}
                                     />
                                   )}

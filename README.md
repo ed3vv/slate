@@ -7,11 +7,14 @@ https://slateplanner.vercel.app
 
 # Updates
 
-latest: v1.1.2
-- fixed bug where session times are counted double
-- users can now see a striped bar for current session in their party
-- added timezones in settings
-- fixed "remember me" in sign in
+
+latest: v1.1.3
+- fixed hiding non-today tasks in todo list
+- changed party stats from last 7 days to this week
+- changed active bar to green
+- heatmap
+
+
 
 ## Tech stack
 

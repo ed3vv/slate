@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Moon, Sun } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Home } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDarkMode } from "@/lib/hooks";
 import { useAuthWithProfile } from "@/lib/useAuthWithProfile";
@@ -123,6 +123,12 @@ export default function SettingsPage() {
 
 
           <div className="flex items-center gap-2">
+            <Button asChild variant="outline" className="bg-card hover:bg-secondary text-foreground">
+              <Link href="/">
+                <Home className="h-4 w-4 mr-2" aria-hidden="true" />
+                Home
+              </Link>
+            </Button>
             <Button asChild variant="outline" className="bg-card hover:bg-secondary text-foreground">
               <Link href="/subjects">
                 <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
