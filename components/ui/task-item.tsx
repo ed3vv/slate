@@ -140,8 +140,9 @@ export function TaskItem({ task, subjectId, subjectColor, onToggle, onTogglePin,
           <Select
             value={editPriority}
             onValueChange={(value) => {
-              setEditPriority(value as Priority)
-              handlePriorityUpdate()
+              const nextPriority = value as Priority
+              setEditPriority(nextPriority)
+              onUpdate({ priority: nextPriority })
             }}
           >
             <SelectTrigger

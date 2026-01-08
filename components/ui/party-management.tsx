@@ -490,10 +490,11 @@ export function PartyManagement() {
                             const status = getUserStatus(stat.user_id, party.id);
                             const isActive = status?.is_active || false;
                             const baseSeconds = status?.current_seconds || 0;
-                            const lastUpdated = (status as any)?.last_updated
-                              ? new Date((status as any).last_updated).getTime()
+                            const lastUpdated = status?.last_updated
+                              ? new Date(status.last_updated).getTime()
                               : 0;
-                            const driftSeconds = isActive && lastUpdated ? Math.max(0, (Date.now() - lastUpdated) / 1000) : 0;
+                            const rawDrift = isActive && lastUpdated ? Math.max(0, (Date.now() - lastUpdated) / 1000) : 0;
+                            const driftSeconds = Math.min(rawDrift, 8); // cap drift to avoid oscillation when updates lag
                             const liveSeconds = Math.round(baseSeconds + driftSeconds);
                             const currentMinutes = liveSeconds / 60;
                             const isPaused = !isActive && baseSeconds > 0; // Paused state: timer exists but not running
