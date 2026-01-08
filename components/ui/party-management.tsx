@@ -489,30 +489,18 @@ export function PartyManagement() {
                             const isCurrentUser = stat.user_id === user?.id;
                             const status = getUserStatus(stat.user_id, party.id);
                             const isActive = status?.is_active || false;
-                            const currentSeconds = status?.current_seconds || 0;
-                            const currentMinutes = currentSeconds / 60;
-                            const isPaused = !isActive && currentSeconds > 0; // Paused state: timer exists but not running
+                            const baseSeconds = status?.current_seconds || 0;
+                            const lastUpdated = (status as any)?.last_updated
+                              ? new Date((status as any).last_updated).getTime()
+                              : 0;
+                            const driftSeconds = isActive && lastUpdated ? Math.max(0, (Date.now() - lastUpdated) / 1000) : 0;
+                            const liveSeconds = Math.round(baseSeconds + driftSeconds);
+                            const currentMinutes = liveSeconds / 60;
+                            const isPaused = !isActive && baseSeconds > 0; // Paused state: timer exists but not running
 
                             const savedPercentage = (stat.total_minutes / maxMinutes) * 100;
                             const activePercentage = (currentMinutes / maxMinutes) * 100;
 
-                            // Debug logging for all users
-                            if (isCurrentUser) {
-                              console.log('[Party Bar Debug - Current User]', {
-                                userId: stat.user_id,
-                                isCurrentUser,
-                                status: status,
-                                isActive,
-                                isPaused,
-                                currentSeconds,
-                                currentMinutes,
-                                maxMinutes,
-                                savedPercentage,
-                                activePercentage,
-                                barWidth: `${Math.min(activePercentage, 100 - savedPercentage)}%`,
-                                willShowStriped: isActive && currentSeconds > 0
-                              });
-                            }
 
                             return (
                               <div key={stat.user_id} className="space-y-1">
@@ -521,9 +509,15 @@ export function PartyManagement() {
                                     <span className="font-medium text-muted-foreground w-6">
                                       #{index + 1}
                                     </span>
-                                    <div title={isActive ? 'Active' : 'Offline'}>
+                                    <div title={isActive ? 'Active' : isPaused ? 'Paused' : 'Offline'}>
                                       <Circle
-                                        className={`h-2 w-2 ${isActive ? 'fill-green-500 text-green-500' : 'fill-gray-400 text-gray-400'}`}
+                                        className={`h-2 w-2 ${
+                                          isActive
+                                            ? 'fill-green-500 text-green-500'
+                                            : isPaused
+                                              ? 'fill-yellow-400 text-yellow-400'
+                                              : 'fill-gray-400 text-gray-400'
+                                        }`}
                                       />
                                     </div>
                                     <span className="text-foreground font-medium">
@@ -532,9 +526,9 @@ export function PartyManagement() {
                                         <span className="ml-2 text-xs text-muted-foreground">(you)</span>
                                       )}
                                     </span>
-                                    {!isCurrentUser && isActive && currentSeconds > 0 && (
+                                    {!isCurrentUser && liveSeconds > 0 && (
                                       <span className="text-xs text-green-600 dark:text-green-400 font-mono">
-                                        {formatTime(currentSeconds)}
+                                        {formatTime(liveSeconds)}
                                       </span>
                                     )}
                                   </div>
@@ -569,7 +563,7 @@ export function PartyManagement() {
                                     }}
                                   />
                                   {/* Active/Paused session bar - striped extension showing current session */}
-                                  {currentSeconds > 0 && (
+                                  {liveSeconds > 0 && (
                                     <div
                                       className={`absolute top-0 h-full transition-all duration-300 bg-striped`}
                                       style={{

@@ -212,7 +212,7 @@ export default function HomePage() {
           <Flame className="h-16 w-16 text-orange-500" />
           <div>
             <div className="text-6xl font-bold text-foreground">{activeUsers}</div>
-            <div className="text-sm text-muted-foreground">users locked in</div>
+            <div className="text-sm text-muted-foreground">currently productive users</div>
           </div>
         </div>
         <div className="flex items-center gap-3 px-6 py-3 rounded-lg">
@@ -246,7 +246,7 @@ export default function HomePage() {
                   }}
                 >
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
-                    {formattedDate}: {Math.floor(day.minutes/60)}h {Math.round(day.minutes%60)}
+                    {formattedDate}: {Math.floor(day.minutes/60)}h {Math.round(day.minutes%60)}m
                   </div>
                 </div>
               </div>

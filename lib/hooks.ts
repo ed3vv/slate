@@ -69,11 +69,7 @@ export function useAuth(requireAuth = true) {
       }
 
       // Only redirect on sign-in/sign-out events, not on token refresh
-      if (event === 'SIGNED_IN' && !requireAuth) {
-        // Redirect to last visited route or default to /subjects
-        const lastRoute = localStorage.getItem('lastVisitedRoute');
-        router.push(lastRoute && lastRoute !== '/login' ? lastRoute : '/subjects');
-      } else if (event === 'SIGNED_OUT' && requireAuth) {
+      if (event === 'SIGNED_OUT' && requireAuth) {
         router.push('/login');
       }
     });

@@ -24,6 +24,14 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const statusUpdateRef = useRef<NodeJS.Timeout | null>(null);
+  const stopInFlightRef = useRef<boolean>(false);
+  const lastSavedRef = useRef<{ duration: number; at: number } | null>(null);
+  const getCurrentElapsed = () => {
+    if (isRunning && sessionStartTime) {
+      return accumulatedSeconds + Math.floor((Date.now() - sessionStartTime) / 1000);
+    }
+    return elapsedSeconds;
+  };
 
   // Fetch user timezone
   useEffect(() => {
@@ -87,13 +95,19 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   // Broadcast status every 5 seconds when running
   useEffect(() => {
     if (isRunning && user?.id) {
-      updateStatus(true, elapsedSeconds);
+      updateStatus(true, getCurrentElapsed());
 
       statusUpdateRef.current = setInterval(() => {
-        updateStatus(true, elapsedSeconds);
+        updateStatus(true, getCurrentElapsed());
       }, 5000);
     } else if (user?.id) {
-      updateStatus(false, elapsedSeconds);
+      // Skip marking inactive if countdown is active elsewhere
+      const countdownActive = typeof window !== 'undefined'
+        ? sessionStorage.getItem('countdownActive') === 'true'
+        : false;
+      if (!countdownActive) {
+        updateStatus(false, getCurrentElapsed());
+      }
     }
 
     return () => {
@@ -101,6 +115,23 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         clearInterval(statusUpdateRef.current);
       }
     };
+  }, [isRunning, elapsedSeconds, user?.id]);
+
+  // Visibility change: push a heartbeat when tab hides/shows to reduce missed updates when throttled
+  useEffect(() => {
+    const handler = () => {
+      if (document.hidden) {
+        if (isRunning && user?.id) {
+          updateStatus(true, getCurrentElapsed());
+        }
+      } else {
+        if (isRunning && user?.id) {
+          updateStatus(true, getCurrentElapsed());
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
   }, [isRunning, elapsedSeconds, user?.id]);
 
   // Warn before closing window with active session
@@ -140,39 +171,56 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   };
 
   const stopTimer = async () => {
-    if (elapsedSeconds > 0 && user?.id) {
-      // Save session to database using user's timezone
-      try {
-        const now = new Date();
-        const today = getDateInTimezone(now, userTimezone);
-        const nowISO = now.toISOString();
-        const sessionId = crypto.randomUUID();
-        const timestamp = Date.now();
+    if (stopInFlightRef.current) return;
+    stopInFlightRef.current = true;
+    try {
+      const duration = getCurrentElapsed();
+      if (duration > 0 && user?.id) {
+        const nowMs = Date.now();
+        if (
+          lastSavedRef.current &&
+          lastSavedRef.current.duration === duration &&
+          nowMs - lastSavedRef.current.at < 2000
+        ) {
+          return;
+        }
+        // Save session to database using user's timezone
+        try {
+          const now = new Date();
+          const today = getDateInTimezone(now, userTimezone);
+          const nowISO = now.toISOString();
+          const sessionId = crypto.randomUUID();
+          const timestamp = nowMs;
 
-        await supabase
-          .from('focus_sessions')
-          .insert({
-            id: sessionId,
-            user_id: user.id,
-            duration: elapsedSeconds,
-            date: today,
-            timestamp: timestamp,
-            createdAt: nowISO,
-            updatedAt: nowISO,
-          });
+          await supabase
+            .from('focus_sessions')
+            .insert({
+              id: sessionId,
+              user_id: user.id,
+              duration,
+              date: today,
+              timestamp: timestamp,
+              createdAt: nowISO,
+              updatedAt: nowISO,
+            });
 
-        // Dispatch event to notify analytics and other components
-        window.dispatchEvent(new CustomEvent('focusSessionAdded', {
-          detail: { date: today, duration: elapsedSeconds, timestamp }
-        }));
-      } catch (error) {
-        console.error('[Focus Timer] Failed to save session:', error);
+          lastSavedRef.current = { duration, at: nowMs };
+
+          // Dispatch event to notify analytics and other components
+          window.dispatchEvent(new CustomEvent('focusSessionAdded', {
+            detail: { date: today, duration, timestamp }
+          }));
+        } catch (error) {
+          console.error('[Focus Timer] Failed to save session:', error);
+        }
       }
+    } finally {
+      setIsRunning(false);
+      setElapsedSeconds(0);
+      setSessionStartTime(null);
+      setAccumulatedSeconds(0);
+      stopInFlightRef.current = false;
     }
-    setIsRunning(false);
-    setElapsedSeconds(0);
-    setSessionStartTime(null);
-    setAccumulatedSeconds(0);
   };
 
   return (
