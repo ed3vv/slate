@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { SubjectsView } from '@/components/ui/subjects-view'
 import { FullscreenClock } from '@/components/ui/fullscreen-clock'
@@ -10,6 +10,14 @@ import { useAuth } from '@/lib/hooks'
 import type { Subject, SortBy, Priority, Task } from '@/types'
 
 export default function SubjectsSection() {
+    return (
+        <Suspense fallback={<div className="p-6 text-foreground">Loading your planner...</div>}>
+            <SubjectsContent />
+        </Suspense>
+    )
+}
+
+function SubjectsContent() {
 
     const router = useRouter()
     const searchParams = useSearchParams()
