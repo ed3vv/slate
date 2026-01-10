@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { SubjectsView } from '@/components/ui/subjects-view'
+import { FullscreenClock } from '@/components/ui/fullscreen-clock'
 import { usePlannerData } from '@/lib/usePlannerData'
 import { DateUtils } from '@/lib/dateUtils'
 import { useAuth } from '@/lib/hooks'
@@ -9,6 +11,9 @@ import type { Subject, SortBy, Priority, Task } from '@/types'
 
 export default function SubjectsSection() {
 
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const showClock = searchParams.get('clock') === '1'
     const [sortBy, setSortBy] = useState<SortBy>("dueDate")
 
     const { user, loading: authLoading } = useAuth(true)
@@ -77,20 +82,27 @@ export default function SubjectsSection() {
     }
 
     return (
-        <SubjectsView
-            subjects={subjects}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            onToggle={toggleSubject}
-            onToggleTask={toggleTaskComplete}
-            onTogglePin={toggleTaskPin}
-            onAddTask={addTaskHandler}
-            onAddSubject={addSubjectHandler}
-            onUpdateTask={updateTaskHandler}
-            onUpdateSubject={updateSubjectHandler}
-            onDeleteTask={deleteTaskHandler}
-            onDeleteSubject={deleteSubjectHandler}
-            sortTasks={sortTasks}
-        />
+        <>
+            <SubjectsView
+                subjects={subjects}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                onToggle={toggleSubject}
+                onToggleTask={toggleTaskComplete}
+                onTogglePin={toggleTaskPin}
+                onAddTask={addTaskHandler}
+                onAddSubject={addSubjectHandler}
+                onUpdateTask={updateTaskHandler}
+                onUpdateSubject={updateSubjectHandler}
+                onDeleteTask={deleteTaskHandler}
+                onDeleteSubject={deleteSubjectHandler}
+                sortTasks={sortTasks}
+            />
+            {showClock && (
+                <div className="fixed inset-0 z-50">
+                    <FullscreenClock onClose={() => router.replace('/subjects')} />
+                </div>
+            )}
+        </>
     )
 }

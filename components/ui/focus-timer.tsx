@@ -24,6 +24,8 @@ export function FocusTimer() {
   const { isRunning, elapsedSeconds, startTimer, pauseTimer, stopTimer } = useTimer();
   const { user } = useAuth(false);
   const [mode, setMode] = useState<Mode>('stopwatch');
+  const [externalStop, setExternalStop] = useState(false);
+  const externalStopRef = useRef(false);
 
   // Countdown state
   const [cdMinutes, setCdMinutes] = useState(30);
@@ -57,17 +59,71 @@ export function FocusTimer() {
     }
   }, [user?.id]);
 
+  useEffect(() => {
+    externalStopRef.current = externalStop;
+  }, [externalStop]);
+
+  // Fetch external stop flag
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('user_status')
+      .select('external_stop')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (typeof data?.external_stop === 'boolean') {
+          setExternalStop(data.external_stop);
+        }
+      });
+  }, [user?.id]);
+
   const updateStatus = useCallback(async (isActive: boolean, currentSeconds: number) => {
     if (!user?.id) return;
+    if (externalStopRef.current && isActive) return;
     try {
       await supabase.from('user_status').upsert({
         user_id: user.id,
         is_active: isActive,
         current_seconds: Math.max(0, Math.floor(currentSeconds)),
         last_updated: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id'
       });
     } catch (error) {
       console.error('[FocusTimer] Failed to update status:', error);
+    }
+  }, [user?.id]);
+
+  const clearExternalStop = useCallback(async () => {
+    if (!user?.id) return;
+    setExternalStop(false);
+    externalStopRef.current = false;
+    try {
+      const payload = {
+        user_id: user.id,
+        external_stop: false,
+        last_updated: new Date().toISOString(),
+      };
+      const { data, error } = await supabase
+        .from('user_status')
+        .update(payload)
+        .eq('user_id', user.id)
+        .select('user_id');
+      if (error) {
+        console.error('[FocusTimer] Failed to clear external stop:', error);
+        return;
+      }
+      if (!data || data.length === 0) {
+        const { error: insertError } = await supabase
+          .from('user_status')
+          .insert(payload);
+        if (insertError) {
+          console.error('[FocusTimer] Failed to insert user status:', insertError);
+        }
+      }
+    } catch (error) {
+      console.error('[FocusTimer] Failed to clear external stop:', error);
     }
   }, [user?.id]);
 
@@ -193,13 +249,12 @@ export function FocusTimer() {
     }
 
     const totalSeconds = newHours * 3600 + newMinutes * 60;
-    if (totalSeconds <= 0) return;
 
     setCdRunning(false);
     cdEndRef.current = null;
     setCdTarget(totalSeconds);
     setCdRemaining(totalSeconds);
-    setCdMinutes(Math.max(1, Math.round(totalSeconds / 60)));
+    setCdMinutes(totalSeconds === 0 ? 0 : Math.max(1, Math.round(totalSeconds / 60)));
     setCountdownActiveFlag(false);
   };
 
@@ -280,6 +335,56 @@ export function FocusTimer() {
     };
   }, [mode, cdRunning, cdTarget, cdRemaining, updateStatus, isRunning, elapsedSeconds, user?.id]);
 
+  // Subscribe to realtime changes on user_status (for Python focus tracker pauses) - for countdown mode
+  useEffect(() => {
+    if (!user?.id || mode !== 'countdown') return;
+
+    const channel = supabase
+      .channel('countdown_user_status_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_status',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const newStatus = payload.new as {
+            is_active: boolean;
+            current_seconds: number;
+            external_stop?: boolean;
+          };
+
+          if (newStatus.is_active === false && cdRunning) {
+            console.log('[Timer] Countdown paused by focus tracker');
+            setCdRunning(false);
+            const remaining = Math.max(0, (cdEndRef.current ?? Date.now()) - Date.now()) / 1000;
+            setCdRemaining(remaining);
+            cdEndRef.current = null;
+            setCountdownActiveFlag(false);
+          }
+
+          if (typeof newStatus.external_stop === 'boolean') {
+            setExternalStop(newStatus.external_stop);
+            if (newStatus.external_stop && cdRunning) {
+              console.log('[Timer] Countdown paused by external stop');
+              setCdRunning(false);
+              const remaining = Math.max(0, (cdEndRef.current ?? Date.now()) - Date.now()) / 1000;
+              setCdRemaining(remaining);
+              cdEndRef.current = null;
+              setCountdownActiveFlag(false);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, mode, cdRunning]);
+
   // Push heartbeat on visibility change for countdown (helps when tab is backgrounded)
   useEffect(() => {
     const handler = () => {
@@ -295,9 +400,14 @@ export function FocusTimer() {
   }, [mode, cdRunning, cdTarget, updateStatus]);
 
   const handleToggle = () => {
+    console.log('[FocusTimer] Toggle clicked - isRunning:', isRunning);
     if (isRunning) {
+      console.log('[FocusTimer] Calling pauseTimer');
       pauseTimer();
     } else {
+      if (externalStopRef.current) {
+        return;
+      }
       startTimer();
     }
   };
@@ -406,6 +516,7 @@ export function FocusTimer() {
                 onClick={handleToggle}
                 className="flex-1 bg-secondary hover:bg-secondary/50 text-foreground"
                 size="lg"
+                disabled={externalStop}
               >
                 {isRunning ? 
                   <Pause className="text-foreground mr-2 h-5 w-5" />
@@ -432,6 +543,10 @@ export function FocusTimer() {
                     cdEndRef.current = null;
                     setCountdownActiveFlag(false);
                   } else {
+                    void clearExternalStop();
+                    if (externalStopRef.current) {
+                      return;
+                    }
                     setCdRunning(true);
                     const start = Date.now();
                     cdEndRef.current = start + cdRemaining * 1000;
@@ -472,7 +587,7 @@ export function FocusTimer() {
           variant="ghost"
           className="w-full mt-[-12] justify-center text-muted-foreground hover:text-foreground"
         >
-          <Link href="/clock">
+          <Link href="/subjects?clock=1">
             <Maximize2 className="mr-2 h-4 w-4" />
           </Link>
         </Button>
